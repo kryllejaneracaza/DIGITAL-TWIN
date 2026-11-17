@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "464331902645",
+    "project_id": "ecobuild-3469b",
+    "storage_bucket": "ecobuild-3469b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:464331902645:android:e20ec419ad8a5496e878fc",
+        "android_client_info": {
+          "package_name": "com.example.ecobuild"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCCw53CMFwHj7DoFjJe8a-Ct_yXjp_6leM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
