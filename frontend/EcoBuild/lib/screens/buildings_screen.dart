@@ -1,19 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../models/building_model.dart';
+import '../providers/building_provider.dart';
 import 'building_details_screen.dart';
-
-class BuildingItem {
-  final String name;
-  final String location;
-  final String description;
-  final List<BuildingRoom> rooms;
-
-  BuildingItem({
-    required this.name,
-    required this.location,
-    required this.description,
-    required this.rooms,
-  });
-}
 
 class BuildingsScreen extends StatefulWidget {
   const BuildingsScreen({super.key});
@@ -24,45 +14,25 @@ class BuildingsScreen extends StatefulWidget {
 
 class _BuildingsScreenState extends State<BuildingsScreen> {
   static const Color primaryGreen = Color(0xFF125838);
-  static const Color lightGreen = Color(0xFFD6EDD5);
-  static const Color backgroundColor = Color(0xFFF1F5F2);
+  static const Color backgroundColor = Color(0xFFEAF8EF);
+  static const Color lightGreen = Color(0xFFD9EFE1);
+  static const Color darkText = Color(0xFF183B2B);
 
   final TextEditingController searchController = TextEditingController();
 
-  late List<BuildingItem> buildings;
-
   String searchQuery = '';
+  bool _hasLoaded = false;
 
   @override
   void initState() {
     super.initState();
 
-    buildings = [
-      BuildingItem(
-        name: 'Comp Lab',
-        location: 'Computer Laboratory',
-        description:
-            'Computer laboratory building with smart monitoring '
-            'and connected room sensors.',
-        rooms: [
-          BuildingRoom(name: 'Computer Room 1', floor: 'Ground Floor'),
-          BuildingRoom(name: 'Computer Room 2', floor: 'First Floor'),
-        ],
-      ),
-      BuildingItem(
-        name: 'Mech Lab',
-        location: 'Mechanical Laboratory',
-        description:
-            'Mechanical laboratory building for equipment '
-            'monitoring and smart space management.',
-        rooms: [
-          BuildingRoom(name: 'Workshop 1', floor: 'Ground Floor'),
-          BuildingRoom(name: 'Workshop 2', floor: 'Ground Floor'),
-          BuildingRoom(name: 'Testing Room', floor: 'First Floor'),
-          BuildingRoom(name: 'Storage Room', floor: 'First Floor'),
-        ],
-      ),
-    ];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _hasLoaded) return;
+
+      _hasLoaded = true;
+      context.read<BuildingProvider>().fetchBuildings();
+    });
   }
 
   @override
@@ -71,188 +41,330 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
     super.dispose();
   }
 
-  List<BuildingItem> get filteredBuildings {
-    if (searchQuery.trim().isEmpty) {
-      return buildings;
-    }
+  List<BuildingModel> filteredBuildings(List<BuildingModel> buildings) {
+    final query = searchQuery.trim().toLowerCase();
+
+    if (query.isEmpty) return buildings;
 
     return buildings.where((building) {
-      return building.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-          building.location.toLowerCase().contains(searchQuery.toLowerCase());
+      return building.name.toLowerCase().contains(query) ||
+          (building.address ?? '').toLowerCase().contains(query);
     }).toList();
   }
 
-  void showAddBuildingDialog() {
+  void showMessage(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red.shade700 : primaryGreen,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> showAddBuildingDialog() async {
     final nameController = TextEditingController();
     final locationController = TextEditingController();
     final descriptionController = TextEditingController();
 
-    showDialog(
+    await showDialog<void>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+        bool isSaving = false;
+
+        return StatefulBuilder(
+          builder: (dialogContext, updateDialog) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.add_business_rounded, color: primaryGreen),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Add New Building',
+                      style: TextStyle(
+                        color: primaryGreen,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 19,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _dialogField(
+                      controller: nameController,
+                      label: 'Building Name',
+                      hint: 'Enter building name',
+                      icon: Icons.business_outlined,
+                    ),
+                    const SizedBox(height: 15),
+                    _dialogField(
+                      controller: locationController,
+                      label: 'Location',
+                      hint: 'Enter building location',
+                      icon: Icons.location_on_outlined,
+                    ),
+                    const SizedBox(height: 15),
+                    _dialogField(
+                      controller: descriptionController,
+                      label: 'Description',
+                      hint: 'Enter building description',
+                      icon: Icons.description_outlined,
+                      maxLines: 3,
+                    ),
+                  ],
+                ),
+              ),
+              actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+              actions: [
+                TextButton(
+                  onPressed: isSaving
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          final name = nameController.text.trim();
+                          final location = locationController.text.trim();
+                          final description = descriptionController.text.trim();
+
+                          if (name.isEmpty || location.isEmpty) {
+                            showMessage(
+                              'Please enter a building name and location.',
+                              isError: true,
+                            );
+                            return;
+                          }
+
+                          final provider = context.read<BuildingProvider>();
+
+                          final alreadyExists = provider.buildings.any(
+                            (building) =>
+                                building.name.toLowerCase() ==
+                                name.toLowerCase(),
+                          );
+
+                          if (alreadyExists) {
+                            showMessage(
+                              'This building already exists.',
+                              isError: true,
+                            );
+                            return;
+                          }
+
+                          updateDialog(() => isSaving = true);
+
+                          final building = BuildingModel(
+                            id: '',
+                            name: name,
+                            address: location,
+                            description: description.isEmpty
+                                ? null
+                                : description,
+                          );
+
+                          final success = await provider.addBuilding(building);
+
+                          if (!mounted) return;
+
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+
+                          if (success) {
+                            showMessage('$name added successfully!');
+                          } else {
+                            showMessage(
+                              provider.errorMessage ??
+                                  'Unable to add building.',
+                              isError: true,
+                            );
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'ADD BUILDING',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    nameController.dispose();
+    locationController.dispose();
+    descriptionController.dispose();
+  }
+
+  Widget _dialogField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, color: primaryGreen),
+        filled: true,
+        fillColor: backgroundColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+
+  Future<void> refreshBuildings() async {
+    await context.read<BuildingProvider>().fetchBuildings();
+  }
+
+  void openBuildingDetails(BuildingModel building) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BuildingDetailsScreen(
+          buildingId: building.id,
+          buildingName: building.name,
+          location: building.address ?? 'Location not specified',
+          description: building.description ?? 'No description available.',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderCard(int totalBuildings) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
-          title: const Text(
-            'Add New Building',
-            style: TextStyle(color: primaryGreen, fontWeight: FontWeight.bold),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: lightGreen,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.apartment_rounded,
+              size: 30,
+              color: primaryGreen,
+            ),
           ),
-          content: SingleChildScrollView(
+          const SizedBox(width: 15),
+          Expanded(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Building Name',
-                    prefixIcon: Icon(Icons.business),
-                    border: OutlineInputBorder(),
+                const Text(
+                  'Total Buildings',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF52745F),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 15),
-                TextField(
-                  controller: locationController,
-                  decoration: const InputDecoration(
-                    labelText: 'Location',
-                    prefixIcon: Icon(Icons.location_on),
-                    border: OutlineInputBorder(),
+                const SizedBox(height: 4),
+                Text(
+                  '$totalBuildings',
+                  style: const TextStyle(
+                    fontSize: 25,
+                    fontWeight: FontWeight.bold,
+                    color: darkText,
                   ),
                 ),
-                const SizedBox(height: 15),
-                TextField(
-                  controller: descriptionController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    prefixIcon: Icon(Icons.description),
-                    border: OutlineInputBorder(),
-                  ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Registered buildings in EcoBuild',
+                  style: TextStyle(fontSize: 10, color: Colors.grey),
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('CANCEL'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryGreen,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                final name = nameController.text.trim();
-                final location = locationController.text.trim();
-                final description = descriptionController.text.trim();
-
-                if (name.isEmpty || location.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Please enter a building name and location.',
-                      ),
-                    ),
-                  );
-                  return;
-                }
-
-                final alreadyExists = buildings.any(
-                  (building) =>
-                      building.name.toLowerCase() == name.toLowerCase(),
-                );
-
-                if (alreadyExists) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('This building already exists.'),
-                    ),
-                  );
-                  return;
-                }
-
-                setState(() {
-                  buildings.add(
-                    BuildingItem(
-                      name: name,
-                      location: location,
-                      description: description.isEmpty
-                          ? 'No description available.'
-                          : description,
-                      rooms: [],
-                    ),
-                  );
-                });
-
-                Navigator.pop(dialogContext);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$name added successfully!'),
-                    backgroundColor: primaryGreen,
-                  ),
-                );
-              },
-              child: const Text('ADD BUILDING'),
-            ),
-          ],
-        );
-      },
-    ).then((_) {
-      nameController.dispose();
-      locationController.dispose();
-      descriptionController.dispose();
-    });
-  }
-
-  void openBuildingDetails(BuildingItem building) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BuildingDetailsScreen(
-          buildingName: building.name,
-          location: building.location,
-          description: building.description,
-          initialRooms: building.rooms,
-        ),
+          const Icon(
+            Icons.business_rounded,
+            size: 28,
+            color: Color(0xFFB5D8C1),
+          ),
+        ],
       ),
-    ).then((_) {
-      if (mounted) {
-        setState(() {});
-      }
-    });
+    );
   }
 
-  Widget buildingCard(BuildingItem building) {
+  Widget _buildBuildingCard(BuildingModel building) {
     return Card(
-      elevation: 3,
+      elevation: 1,
       color: Colors.white,
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      margin: const EdgeInsets.only(bottom: 13),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => openBuildingDetails(building),
         child: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(13),
           child: Row(
             children: [
               Container(
-                width: 115,
-                height: 85,
+                width: 76,
+                height: 76,
                 decoration: BoxDecoration(
                   color: lightGreen,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
                   Icons.apartment_rounded,
+                  size: 39,
                   color: primaryGreen,
-                  size: 55,
                 ),
               ),
-              const SizedBox(width: 13),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,34 +374,50 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: primaryGreen,
+                        color: darkText,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
                       ),
                     ),
                     const SizedBox(height: 7),
-                    Text(
-                      '${building.rooms.length} Rooms',
-                      style: const TextStyle(
-                        color: Color(0xFF52745F),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 14,
+                          color: primaryGreen,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            building.address ?? 'No location specified',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      building.location,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    const SizedBox(height: 7),
+                    const Text(
+                      'View building details',
+                      style: TextStyle(
+                        color: primaryGreen,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 5),
               const Icon(
                 Icons.arrow_forward_ios_rounded,
-                size: 17,
                 color: primaryGreen,
+                size: 16,
               ),
             ],
           ),
@@ -298,35 +426,64 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
     );
   }
 
-  Widget addBuildingCard() {
-    return InkWell(
-      onTap: showAddBuildingDialog,
-      borderRadius: BorderRadius.circular(15),
-      child: Container(
-        width: double.infinity,
-        height: 105,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(0, 3),
-            ),
-          ],
+  Widget _buildAddBuildingButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 53,
+      child: ElevatedButton.icon(
+        onPressed: showAddBuildingDialog,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text(
+          'ADD NEW BUILDING',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryGreen,
+          foregroundColor: Colors.white,
+          elevation: 1,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(13),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingView() {
+    return const Center(child: CircularProgressIndicator(color: primaryGreen));
+  }
+
+  Widget _buildErrorView(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(25),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.add_circle_outline, size: 43, color: primaryGreen),
-            SizedBox(width: 15),
-            Text(
-              'Add Building',
+            const Icon(Icons.cloud_off_rounded, size: 55, color: Colors.grey),
+            const SizedBox(height: 13),
+            const Text(
+              'Unable to load buildings',
               style: TextStyle(
-                color: primaryGreen,
-                fontSize: 16,
                 fontWeight: FontWeight.bold,
+                color: primaryGreen,
+                fontSize: 17,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 17),
+            ElevatedButton.icon(
+              onPressed: refreshBuildings,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('TRY AGAIN'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                foregroundColor: Colors.white,
               ),
             ),
           ],
@@ -335,75 +492,202 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
     );
   }
 
+  Widget _buildEmptyView() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 35),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              color: lightGreen,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.apartment_rounded,
+              size: 42,
+              color: primaryGreen,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'No buildings found',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: darkText,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            searchQuery.isEmpty
+                ? 'Add your first building to get started.'
+                : 'Try searching with a different name or location.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
+      appBar: AppBar(
+        backgroundColor: primaryGreen,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'Buildings',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          IconButton(
+            onPressed: refreshBuildings,
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Refresh buildings',
+          ),
+          const SizedBox(width: 5),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 850),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Buildings',
-                    style: TextStyle(
-                      color: primaryGreen,
-                      fontSize: 27,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+            child: Consumer<BuildingProvider>(
+              builder: (context, provider, child) {
+                final buildings = filteredBuildings(provider.buildings);
 
-                  TextField(
-                    controller: searchController,
-                    onChanged: (value) {
-                      setState(() {
-                        searchQuery = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search buildings...',
-                      prefixIcon: const Icon(Icons.search, color: primaryGreen),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 13),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                if (provider.isLoading && provider.buildings.isEmpty) {
+                  return _buildLoadingView();
+                }
+
+                if (provider.errorMessage != null &&
+                    provider.buildings.isEmpty) {
+                  return _buildErrorView(provider.errorMessage!);
+                }
+
+                return RefreshIndicator(
+                  onRefresh: refreshBuildings,
+                  color: primaryGreen,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      const Text(
+                        'Building Management',
+                        style: TextStyle(
+                          fontSize: 21,
+                          fontWeight: FontWeight.bold,
+                          color: darkText,
+                        ),
                       ),
-                    ),
-                  ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Manage and monitor your registered buildings.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
 
-                  const SizedBox(height: 22),
+                      _buildHeaderCard(provider.buildings.length),
 
-                  Expanded(
-                    child: ListView(
-                      children: [
-                        ...filteredBuildings.map(buildingCard),
+                      const SizedBox(height: 22),
 
-                        if (filteredBuildings.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.all(30),
-                            child: Center(
-                              child: Text(
-                                'No buildings found.',
-                                style: TextStyle(color: Colors.grey),
+                      TextField(
+                        controller: searchController,
+                        onChanged: (value) {
+                          setState(() => searchQuery = value);
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Search buildings...',
+                          hintStyle: const TextStyle(fontSize: 13),
+                          prefixIcon: const Icon(
+                            Icons.search_rounded,
+                            color: primaryGreen,
+                          ),
+                          suffixIcon: searchQuery.isNotEmpty
+                              ? IconButton(
+                                  onPressed: () {
+                                    searchController.clear();
+                                    setState(() => searchQuery = '');
+                                  },
+                                  icon: const Icon(Icons.close_rounded),
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(13),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 22),
+
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.business_rounded,
+                            color: primaryGreen,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Building List',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: darkText,
                               ),
                             ),
                           ),
+                          Text(
+                            '${buildings.length} found',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
 
-                        const SizedBox(height: 5),
+                      const SizedBox(height: 13),
 
-                        addBuildingCard(),
-                      ],
-                    ),
+                      if (buildings.isEmpty)
+                        _buildEmptyView()
+                      else
+                        ...buildings.map(_buildBuildingCard),
+
+                      const SizedBox(height: 12),
+
+                      _buildAddBuildingButton(),
+
+                      const SizedBox(height: 20),
+
+                      Center(
+                        child: Text(
+                          'EcoBuild • Smart Building Monitoring System',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ),

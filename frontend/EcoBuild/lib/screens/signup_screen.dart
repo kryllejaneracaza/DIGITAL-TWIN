@@ -1,6 +1,9 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/auth_provider.dart';
+import 'main_navigation_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -20,10 +23,10 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _hidePassword = true;
   bool _hideConfirmPassword = true;
 
+  static const Color primaryGreen = Color(0xFF125838);
+
   Future<void> _registerAccount() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
@@ -31,7 +34,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
     final error = await context.read<AuthProvider>().signUp(
       _emailController.text.trim(),
-      _passwordController.text.trim(),
+      _passwordController.text,
     );
 
     if (!mounted) return;
@@ -42,9 +45,60 @@ class _SignupScreenState extends State<SignupScreen> {
 
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(error),
+          backgroundColor: Colors.red,
+        ),
       );
+      return;
     }
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          title: const Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: primaryGreen,
+              ),
+              SizedBox(width: 10),
+              Expanded(child: Text('Account Created!')),
+            ],
+          ),
+          content: const Text(
+            'Your EcoBuild account has been successfully created. '
+            'Welcome to EcoBuild!',
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('CONTINUE'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => const MainNavigationScreen(),
+      ),
+      (route) => false,
+    );
   }
 
   @override
@@ -62,7 +116,7 @@ class _SignupScreenState extends State<SignupScreen> {
       appBar: AppBar(
         title: const Text('Create Account'),
         backgroundColor: const Color(0xFFEAF8EF),
-        foregroundColor: const Color(0xFF125838),
+        foregroundColor: primaryGreen,
         elevation: 0,
       ),
       body: SafeArea(
@@ -80,7 +134,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF125838),
+                    color: primaryGreen,
                   ),
                 ),
 
@@ -88,7 +142,10 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 const Text(
                   'Create your account to get started.',
-                  style: TextStyle(color: Color(0xFF52745F), fontSize: 15),
+                  style: TextStyle(
+                    color: Color(0xFF52745F),
+                    fontSize: 15,
+                  ),
                 ),
 
                 const SizedBox(height: 35),
@@ -97,7 +154,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   'Email Address',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF125838),
+                    color: primaryGreen,
                   ),
                 ),
 
@@ -134,7 +191,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   'Password',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF125838),
+                    color: primaryGreen,
                   ),
                 ),
 
@@ -148,7 +205,9 @@ class _SignupScreenState extends State<SignupScreen> {
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _hidePassword ? Icons.visibility_off : Icons.visibility,
+                        _hidePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                       ),
                       onPressed: () {
                         setState(() {
@@ -179,7 +238,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   'Confirm Password',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF125838),
+                    color: primaryGreen,
                   ),
                 ),
 
@@ -199,7 +258,8 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       onPressed: () {
                         setState(() {
-                          _hideConfirmPassword = !_hideConfirmPassword;
+                          _hideConfirmPassword =
+                              !_hideConfirmPassword;
                         });
                       },
                     ),
@@ -228,14 +288,21 @@ class _SignupScreenState extends State<SignupScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _registerAccount,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF125838),
+                      backgroundColor: primaryGreen,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
                         : const Text(
                             'CREATE ACCOUNT',
                             style: TextStyle(

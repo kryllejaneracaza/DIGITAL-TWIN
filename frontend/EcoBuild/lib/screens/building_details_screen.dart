@@ -1,25 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-class BuildingRoom {
-  final String name;
-  final String floor;
-  final int sensorCount;
-
-  BuildingRoom({required this.name, required this.floor, this.sensorCount = 0});
-}
+import '../models/room_model.dart';
+import '../providers/room_provider.dart';
 
 class BuildingDetailsScreen extends StatefulWidget {
+  final String buildingId;
   final String buildingName;
   final String location;
   final String description;
-  final List<BuildingRoom> initialRooms;
 
   const BuildingDetailsScreen({
     super.key,
+    required this.buildingId,
     required this.buildingName,
     required this.location,
     required this.description,
-    required this.initialRooms,
   });
 
   @override
@@ -30,8 +26,6 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
   static const Color primaryGreen = Color(0xFF125838);
   static const Color lightGreen = Color(0xFFD6EDD5);
   static const Color backgroundColor = Color(0xFFF1F5F2);
-
-  late final List<BuildingRoom> rooms;
 
   final List<String> floors = [
     'Ground Floor',
@@ -45,26 +39,40 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    rooms = widget.initialRooms;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      context.read<RoomProvider>().fetchRoomsByBuilding(widget.buildingId);
+    });
   }
 
-  int get totalSensors {
-    return rooms.fold(0, (total, room) => total + room.sensorCount);
+  int floorNumber(String floor) {
+    return floors.indexOf(floor);
   }
 
-  List<BuildingRoom> roomsOnFloor(String floor) {
-    return rooms.where((room) => room.floor == floor).toList();
+  String floorName(int? floor) {
+    if (floor == null || floor < 0 || floor >= floors.length) {
+      return 'Unassigned Floor';
+    }
+
+    return floors[floor];
+  }
+
+  List<RoomModel> roomsOnFloor(List<RoomModel> rooms, String floor) {
+    return rooms.where((room) => room.floor == floorNumber(floor)).toList();
   }
 
   void showAddRoomDialog() {
     final nameController = TextEditingController();
     String selectedFloor = floors.first;
+    bool isSaving = false;
 
     showDialog(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, updateDialog) {
+          builder: (dialogContext, updateDialog) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
@@ -93,7 +101,6 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-
                   DropdownButtonFormField<String>(
                     initialValue: selectedFloor,
                     decoration: InputDecoration(
@@ -106,21 +113,23 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
                     items: floors.map((floor) {
                       return DropdownMenuItem(value: floor, child: Text(floor));
                     }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        updateDialog(() {
-                          selectedFloor = value;
-                        });
-                      }
-                    },
+                    onChanged: isSaving
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              updateDialog(() {
+                                selectedFloor = value;
+                              });
+                            }
+                          },
                   ),
                 ],
               ),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                  },
+                  onPressed: isSaving
+                      ? null
+                      : () => Navigator.pop(dialogContext),
                   child: const Text(
                     'CANCEL',
                     style: TextStyle(color: Colors.grey),
@@ -131,51 +140,93 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
                     backgroundColor: primaryGreen,
                     foregroundColor: Colors.white,
                   ),
-                  onPressed: () {
-                    final roomName = nameController.text.trim();
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          final roomName = nameController.text.trim();
 
-                    if (roomName.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please enter a room name.'),
-                        ),
-                      );
-                      return;
-                    }
+                          if (roomName.isEmpty) {
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please enter a room name.'),
+                              ),
+                            );
+                            return;
+                          }
 
-                    final exists = rooms.any(
-                      (room) =>
-                          room.name.toLowerCase() == roomName.toLowerCase() &&
-                          room.floor == selectedFloor,
-                    );
+                          final roomProvider = dialogContext
+                              .read<RoomProvider>();
 
-                    if (exists) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'This room already exists on this floor.',
+                          final exists = roomProvider.rooms.any(
+                            (room) =>
+                                room.name.toLowerCase() ==
+                                    roomName.toLowerCase() &&
+                                room.floor == floorNumber(selectedFloor),
+                          );
+
+                          if (exists) {
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'This room already exists on this floor.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          updateDialog(() {
+                            isSaving = true;
+                          });
+
+                          final newRoom = RoomModel(
+                            id: '',
+                            buildingId: widget.buildingId,
+                            name: roomName,
+                            floor: floorNumber(selectedFloor),
+                          );
+
+                          final success = await roomProvider.addRoom(newRoom);
+
+                          if (!mounted || !dialogContext.mounted) {
+                            return;
+                          }
+
+                          if (success) {
+                            Navigator.pop(dialogContext);
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('$roomName added successfully!'),
+                                backgroundColor: primaryGreen,
+                              ),
+                            );
+                          } else {
+                            updateDialog(() {
+                              isSaving = false;
+                            });
+
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  roomProvider.errorMessage ??
+                                      'Unable to add room.',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
                           ),
-                        ),
-                      );
-                      return;
-                    }
-
-                    setState(() {
-                      rooms.add(
-                        BuildingRoom(name: roomName, floor: selectedFloor),
-                      );
-                    });
-
-                    Navigator.pop(dialogContext);
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('$roomName added successfully!'),
-                        backgroundColor: primaryGreen,
-                      ),
-                    );
-                  },
-                  child: const Text('ADD ROOM'),
+                        )
+                      : const Text('ADD ROOM'),
                 ),
               ],
             );
@@ -211,7 +262,6 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-
           Text(
             widget.buildingName,
             style: const TextStyle(
@@ -220,9 +270,7 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 10),
-
           Row(
             children: [
               const Icon(Icons.location_on, color: primaryGreen, size: 19),
@@ -235,9 +283,7 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
               ),
             ],
           ),
-
           const SizedBox(height: 12),
-
           Text(
             widget.description,
             style: const TextStyle(
@@ -287,8 +333,8 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
     );
   }
 
-  Widget floorSection(String floor) {
-    final floorRooms = roomsOnFloor(floor);
+  Widget floorSection(String floor, List<RoomModel> rooms) {
+    final floorRooms = roomsOnFloor(rooms, floor);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 13),
@@ -321,7 +367,6 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
                 style: TextStyle(color: Colors.grey),
               ),
             ),
-
           ...floorRooms.map((room) {
             return ListTile(
               leading: Container(
@@ -340,7 +385,9 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
                 ),
               ),
               subtitle: Text(
-                '${room.sensorCount} Sensors',
+                room.description?.isNotEmpty == true
+                    ? room.description!
+                    : 'Room ID: ${room.id}',
                 style: const TextStyle(fontSize: 12),
               ),
               trailing: const Icon(
@@ -357,9 +404,11 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final roomProvider = context.watch<RoomProvider>();
+    final rooms = roomProvider.rooms;
+
     return Scaffold(
       backgroundColor: backgroundColor,
-
       floatingActionButton: FloatingActionButton.extended(
         onPressed: showAddRoomDialog,
         backgroundColor: primaryGreen,
@@ -367,7 +416,6 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Add Room'),
       ),
-
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -395,10 +443,16 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
                           ),
                         ),
                       ),
+                      IconButton(
+                        tooltip: 'Refresh rooms',
+                        onPressed: () {
+                          roomProvider.fetchRoomsByBuilding(widget.buildingId);
+                        },
+                        icon: const Icon(Icons.refresh, color: primaryGreen),
+                      ),
                     ],
                   ),
                 ),
-
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(18, 10, 18, 100),
@@ -411,13 +465,9 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 13),
-
                       buildingInformationCard(),
-
                       const SizedBox(height: 24),
-
                       const Text(
                         'Building Overview',
                         style: TextStyle(
@@ -426,9 +476,7 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 13),
-
                       Row(
                         children: [
                           overviewCard(
@@ -440,19 +488,17 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
                           overviewCard(
                             icon: Icons.sensors,
                             title: 'Total Sensors',
-                            value: '$totalSensors',
+                            value: '—',
                           ),
                           const SizedBox(width: 10),
                           overviewCard(
                             icon: Icons.wifi,
                             title: 'Connection',
-                            value: 'Offline',
+                            value: '—',
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 25),
-
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -473,10 +519,64 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 13),
-
-                      ...floors.map(floorSection),
+                      if (roomProvider.isLoading)
+                        const Padding(
+                          padding: EdgeInsets.all(30),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: primaryGreen,
+                            ),
+                          ),
+                        )
+                      else if (roomProvider.errorMessage != null &&
+                          rooms.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Column(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Colors.red,
+                                size: 35,
+                              ),
+                              const SizedBox(height: 10),
+                              const Text(
+                                'Unable to load rooms.',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                roomProvider.errorMessage!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  roomProvider.fetchRoomsByBuilding(
+                                    widget.buildingId,
+                                  );
+                                },
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Retry'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryGreen,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        ...floors.map((floor) => floorSection(floor, rooms)),
                     ],
                   ),
                 ),

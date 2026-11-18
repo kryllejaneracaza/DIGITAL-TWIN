@@ -7,6 +7,7 @@ import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/building_provider.dart';
 import 'providers/sensor_provider.dart';
+import 'providers/room_provider.dart';
 
 import 'services/api_service.dart';
 
@@ -44,6 +45,10 @@ void main() async {
         Provider<RoomService>(
           create: (context) =>
               RoomService(apiService: context.read<ApiService>()),
+        ),
+        ChangeNotifierProvider<RoomProvider>(
+          create: (context) =>
+              RoomProvider(roomService: context.read<RoomService>()),
         ),
 
         Provider<SensorService>(
