@@ -685,5 +685,35 @@
                 "file": "\\Users\\krylle\\.node-red\\node_modules\\node-red-dashboard\\nodes\\ui_spacer.js"
             }
         }
+    },
+    "node-red-contrib-jsonwebtoken": {
+        "name": "node-red-contrib-jsonwebtoken",
+        "version": "1.0.7",
+        "local": true,
+        "user": true,
+        "nodes": {
+            "jwt-sign": {
+                "name": "jwt-sign",
+                "types": [
+                    "jwt sign"
+                ],
+                "enabled": true,
+                "local": true,
+                "user": false,
+                "module": "node-red-contrib-jsonwebtoken",
+                "file": "\\Users\\krylle\\.node-red\\node_modules\\node-red-contrib-jsonwebtoken\\jwt-sign.js"
+            },
+            "jwt-verify": {
+                "name": "jwt-verify",
+                "types": [
+                    "jwt verify"
+                ],
+                "enabled": true,
+                "local": true,
+                "user": false,
+                "module": "node-red-contrib-jsonwebtoken",
+                "file": "\\Users\\krylle\\.node-red\\node_modules\\node-red-contrib-jsonwebtoken\\jwt-verify.js"
+            }
+        }
     }
 }

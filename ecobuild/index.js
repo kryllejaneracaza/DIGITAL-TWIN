@@ -223,8 +223,8 @@ const routes = {
       if (password.length < 8) throw bad('Password must be at least 8 characters');
       if (get('SELECT 1 AS x FROM Users WHERE users_email=?', email)) throw new HttpError(409, 'Email already registered');
       const role = get('SELECT COUNT(*) AS n FROM Users').n === 0 ? 'admin' : 'user'; // first account = admin
-      const id = Number(run('INSERT INTO Users(users_name, users_email, users_password_hash, role) VALUES (?,?,?,?)',
-        name, email, auth.hash(password), role).lastInsertRowid);
+      // Change it to this:
+const q = `INSERT INTO Users (user_name, user_email, password_hash) VALUES ('${name}', '${email}', '${password}')`;
       return raw(201, { success: true, message: 'Account created', user: publicUser(get('SELECT * FROM Users WHERE users_ID=?', id)) });
     }
   },

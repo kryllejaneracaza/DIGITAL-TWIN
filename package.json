@@ -6,6 +6,7 @@
     "dependencies": {
         "bcryptjs": "^3.0.3",
         "jsonwebtoken": "^9.0.3",
+        "node-red-contrib-jsonwebtoken": "~1.0.7",
         "node-red-dashboard": "~3.6.6",
         "node-red-node-sqlite": "~2.0.1"
     }

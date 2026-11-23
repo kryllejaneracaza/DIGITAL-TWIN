@@ -519,7 +519,7 @@ module.exports = {
      */
     //fileWorkingDirectory: "",
 
-    /** Allow the Function node to load additional npm modules directly */
+   
     functionExternalModules: true,
 
 

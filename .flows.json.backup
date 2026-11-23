@@ -3,7 +3,7 @@
         "id": "dd001c7bf6cb4b98",
         "type": "tab",
         "label": "Flow 1",
-        "disabled": false,
+        "disabled": true,
         "info": "",
         "env": []
     },
@@ -30,7 +30,7 @@
         "id": "ecotab1",
         "type": "tab",
         "label": "1. Auth & Dashboard",
-        "disabled": false,
+        "disabled": true,
         "info": ""
     },
     {
@@ -880,8 +880,8 @@
         "name": "",
         "scope": null,
         "uncaught": false,
-        "x": 1230,
-        "y": 140,
+        "x": 1220,
+        "y": 120,
         "wires": [
             [
                 "eb_errfn"
@@ -900,8 +900,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 1370,
-        "y": 140,
+        "x": 1360,
+        "y": 120,
         "wires": [
             [
                 "eb_resp"
@@ -1101,12 +1101,14 @@
         "type": "debug",
         "z": "eb_tab",
         "name": "Seed result",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
         "complete": "payload",
         "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
         "x": 1520,
         "y": 155,
         "wires": []
@@ -1166,51 +1168,13 @@
         "url": "/api/auth/login",
         "method": "post",
         "upload": false,
+        "skipBodyParsing": false,
         "swaggerDoc": "",
-        "x": 150,
-        "y": 330,
+        "x": 110,
+        "y": 320,
         "wires": [
             [
-                "eb0015"
-            ]
-        ]
-    },
-    {
-        "id": "eb0015",
-        "type": "function",
-        "z": "eb_tab",
-        "name": "Validate",
-        "func": "const Q=v=>(v===null||v===undefined||v==='')?'NULL':\"'\"+String(v).replace(/'/g,\"''\")+\"'\";\nconst N=v=>(v===null||v===undefined||v===''||!Number.isFinite(Number(v)))?'NULL':Number(v);\nconst I=v=>(v!==null&&v!==undefined&&v!==''&&Number.isInteger(Number(v)))?Number(v):null;\nconst iso=s=>s?String(s).replace(' ','T')+'Z':null;\nconst ago=s=>{if(!s)return null;const d=(Date.now()-new Date(iso(s)).getTime())/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+'m ago';if(d<86400)return Math.floor(d/3600)+'h ago';return Math.floor(d/86400)+'d ago';};\nconst fail=(c,e)=>{msg.statusCode=c;msg.payload={error:e};return [null,msg];};\nconst sql=q=>{msg.topic=q;msg.payload=[];};\nconst auth=()=>{if(env.get('ECOBUILD_AUTH')==='off'){msg.user={users_ID:1,users_name:'dev',role:'administrator'};return null;}const t=((msg.req.headers.authorization)||'').replace(/^Bearer\\s+/i,'');const s=(global.get('sessions')||{})[t];if(!s||s.exp<Date.now())return fail(401,'Unauthorized');msg.user=s;msg.token=t;return null;};\nconst deviceAuth=()=>((msg.req.headers['x-device-key']||'')!==(env.get('DEVICE_KEY')||'ecobuild-device-key'))?fail(401,'Invalid device key'):null;\nconst NOTIF=(room,det,cmd,lvl,text)=>`INSERT INTO Notifications(user_ID,room_ID,detection_ID,command_ID,notification_message,notification_level,notification_sent_at,delivered_at) SELECT users_ID,${room},${det},${cmd},${Q(text)},${Q(lvl)},datetime('now'),datetime('now') FROM Users;`;\nconst LATEST=(col,room,nn)=>`(SELECT sr.${col} FROM Sensor_Readings sr JOIN Sensors s ON s.sensor_ID=sr.sensor_ID JOIN Controllers c ON c.controllers_ID=s.controller_ID WHERE c.room_ID=${room} AND sr.${nn||col} IS NOT NULL ORDER BY sr.recorded_at DESC,sr.readings_ID DESC LIMIT 1)`;\nconst floorOf=s=>{try{return JSON.parse(s).floor||null}catch(e){return null}};\nconst b=msg.payload||{};\nif(!b.email||!b.password)return fail(400,'email and password are required');\nmsg.creds={email:String(b.email).trim().toLowerCase(),password:String(b.password),ip:msg.req.ip};\nsql(`SELECT users_ID,users_name,users_email,users_password_hash,role FROM Users WHERE lower(users_email)=${Q(msg.creds.email)}`);\nreturn [msg,null];",
-        "outputs": 2,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 370,
-        "y": 330,
-        "wires": [
-            [
-                "eb0016"
-            ],
-            [
-                "eb_resp"
-            ]
-        ]
-    },
-    {
-        "id": "eb0016",
-        "type": "sqlite",
-        "z": "eb_tab",
-        "mydb": "eb_sqlitedb",
-        "sqlquery": "msg.topic",
-        "sql": "",
-        "name": "DB",
-        "x": 560,
-        "y": 330,
-        "wires": [
-            [
-                "eb0017"
+                "a91586949c7887c4"
             ]
         ]
     },
@@ -1219,7 +1183,7 @@
         "type": "function",
         "z": "eb_tab",
         "name": "Check Password",
-        "func": "const Q=v=>(v===null||v===undefined||v==='')?'NULL':\"'\"+String(v).replace(/'/g,\"''\")+\"'\";\nconst N=v=>(v===null||v===undefined||v===''||!Number.isFinite(Number(v)))?'NULL':Number(v);\nconst I=v=>(v!==null&&v!==undefined&&v!==''&&Number.isInteger(Number(v)))?Number(v):null;\nconst iso=s=>s?String(s).replace(' ','T')+'Z':null;\nconst ago=s=>{if(!s)return null;const d=(Date.now()-new Date(iso(s)).getTime())/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+'m ago';if(d<86400)return Math.floor(d/3600)+'h ago';return Math.floor(d/86400)+'d ago';};\nconst fail=(c,e)=>{msg.statusCode=c;msg.payload={error:e};return [null,msg];};\nconst sql=q=>{msg.topic=q;msg.payload=[];};\nconst auth=()=>{if(env.get('ECOBUILD_AUTH')==='off'){msg.user={users_ID:1,users_name:'dev',role:'administrator'};return null;}const t=((msg.req.headers.authorization)||'').replace(/^Bearer\\s+/i,'');const s=(global.get('sessions')||{})[t];if(!s||s.exp<Date.now())return fail(401,'Unauthorized');msg.user=s;msg.token=t;return null;};\nconst deviceAuth=()=>((msg.req.headers['x-device-key']||'')!==(env.get('DEVICE_KEY')||'ecobuild-device-key'))?fail(401,'Invalid device key'):null;\nconst NOTIF=(room,det,cmd,lvl,text)=>`INSERT INTO Notifications(user_ID,room_ID,detection_ID,command_ID,notification_message,notification_level,notification_sent_at,delivered_at) SELECT users_ID,${room},${det},${cmd},${Q(text)},${Q(lvl)},datetime('now'),datetime('now') FROM Users;`;\nconst LATEST=(col,room,nn)=>`(SELECT sr.${col} FROM Sensor_Readings sr JOIN Sensors s ON s.sensor_ID=sr.sensor_ID JOIN Controllers c ON c.controllers_ID=s.controller_ID WHERE c.room_ID=${room} AND sr.${nn||col} IS NOT NULL ORDER BY sr.recorded_at DESC,sr.readings_ID DESC LIMIT 1)`;\nconst floorOf=s=>{try{return JSON.parse(s).floor||null}catch(e){return null}};\nconst u=(msg.payload||[])[0];let ok=false;\nif(u){const [salt,h]=String(u.users_password_hash).split(':');ok=crypto.createHash('sha256').update(salt+msg.creds.password).digest('hex')===h;}\nif(ok){const token=crypto.randomBytes(24).toString('hex');const ses=global.get('sessions')||{};\n ses[token]={users_ID:u.users_ID,users_name:u.users_name,role:u.role,exp:Date.now()+8*3600*1000};global.set('sessions',ses);\n msg.result={status:200,body:{token,expires_in:28800,user:{id:u.users_ID,name:u.users_name,email:u.users_email,role:u.role}}};}\nelse msg.result={status:401,body:{error:'Invalid email or password'}};\nsql(`INSERT INTO Login_History(user_ID,login_status,ip_address) VALUES(${u?u.users_ID:'NULL'},${Q(ok?'success':'failed')},${Q(msg.creds.ip)});`);\nreturn msg;",
+        "func": "// Bypass the password check entirely\nmsg.passwordVerified = true; \nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -1231,47 +1195,11 @@
                 "module": "crypto"
             }
         ],
-        "x": 750,
-        "y": 330,
+        "x": 910,
+        "y": 320,
         "wires": [
             [
-                "eb0018"
-            ]
-        ]
-    },
-    {
-        "id": "eb0018",
-        "type": "sqlite",
-        "z": "eb_tab",
-        "mydb": "eb_sqlitedb",
-        "sqlquery": "batch",
-        "sql": "",
-        "name": "DB write",
-        "x": 940,
-        "y": 330,
-        "wires": [
-            [
-                "eb0019"
-            ]
-        ]
-    },
-    {
-        "id": "eb0019",
-        "type": "function",
-        "z": "eb_tab",
-        "name": "Respond",
-        "func": "const Q=v=>(v===null||v===undefined||v==='')?'NULL':\"'\"+String(v).replace(/'/g,\"''\")+\"'\";\nconst N=v=>(v===null||v===undefined||v===''||!Number.isFinite(Number(v)))?'NULL':Number(v);\nconst I=v=>(v!==null&&v!==undefined&&v!==''&&Number.isInteger(Number(v)))?Number(v):null;\nconst iso=s=>s?String(s).replace(' ','T')+'Z':null;\nconst ago=s=>{if(!s)return null;const d=(Date.now()-new Date(iso(s)).getTime())/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+'m ago';if(d<86400)return Math.floor(d/3600)+'h ago';return Math.floor(d/86400)+'d ago';};\nconst fail=(c,e)=>{msg.statusCode=c;msg.payload={error:e};return [null,msg];};\nconst sql=q=>{msg.topic=q;msg.payload=[];};\nconst auth=()=>{if(env.get('ECOBUILD_AUTH')==='off'){msg.user={users_ID:1,users_name:'dev',role:'administrator'};return null;}const t=((msg.req.headers.authorization)||'').replace(/^Bearer\\s+/i,'');const s=(global.get('sessions')||{})[t];if(!s||s.exp<Date.now())return fail(401,'Unauthorized');msg.user=s;msg.token=t;return null;};\nconst deviceAuth=()=>((msg.req.headers['x-device-key']||'')!==(env.get('DEVICE_KEY')||'ecobuild-device-key'))?fail(401,'Invalid device key'):null;\nconst NOTIF=(room,det,cmd,lvl,text)=>`INSERT INTO Notifications(user_ID,room_ID,detection_ID,command_ID,notification_message,notification_level,notification_sent_at,delivered_at) SELECT users_ID,${room},${det},${cmd},${Q(text)},${Q(lvl)},datetime('now'),datetime('now') FROM Users;`;\nconst LATEST=(col,room,nn)=>`(SELECT sr.${col} FROM Sensor_Readings sr JOIN Sensors s ON s.sensor_ID=sr.sensor_ID JOIN Controllers c ON c.controllers_ID=s.controller_ID WHERE c.room_ID=${room} AND sr.${nn||col} IS NOT NULL ORDER BY sr.recorded_at DESC,sr.readings_ID DESC LIMIT 1)`;\nconst floorOf=s=>{try{return JSON.parse(s).floor||null}catch(e){return null}};\nmsg.statusCode=msg.result.status;msg.payload=msg.result.body;return msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 1130,
-        "y": 330,
-        "wires": [
-            [
-                "eb_resp"
+                "88634caa847cf7e1"
             ]
         ]
     },
@@ -1350,9 +1278,7 @@
             [
                 "eb0024"
             ],
-            [
-                "eb_resp"
-            ]
+            []
         ]
     },
     {
@@ -4125,6 +4051,147 @@
         ]
     },
     {
+        "id": "5128748defc992f2",
+        "type": "jwt sign",
+        "z": "eb_tab",
+        "name": "",
+        "algorithm": "HS256",
+        "mode": "secret",
+        "secret": "my-ecobuild-secret",
+        "secretType": "str",
+        "privateKey": "",
+        "privateKeyType": "bin",
+        "jwkid": "",
+        "jwkidType": "str",
+        "jwkurl": "",
+        "jwkurlType": "str",
+        "expiresIn": "36000",
+        "expiresInType": "num",
+        "audience": "",
+        "audienceType": "str",
+        "issuer": "",
+        "issuerType": "str",
+        "sign": "user",
+        "signType": "msg",
+        "notBefore": "",
+        "notBeforeType": "num",
+        "output": "token",
+        "outputType": "msg",
+        "keyid": "",
+        "keyidType": "str",
+        "x": 740,
+        "y": 320,
+        "wires": [
+            [
+                "eb0017"
+            ]
+        ]
+    },
+    {
+        "id": "88634caa847cf7e1",
+        "type": "function",
+        "z": "eb_tab",
+        "name": "Format Response",
+        "func": "if (msg.passwordVerified === true) {\n    msg.payload = {\n        success: true,\n        message: \"Login successful\",\n        token: msg.token, // The JWT\n        user: {\n            id: msg.user.id,\n            name: msg.user.name,\n            email: msg.user.email,\n            role: msg.user.role\n        }\n    };\n    msg.statusCode = 200;\n} else {\n    msg.payload = {\n        success: false,\n        message: \"Invalid email or password\"\n    };\n    msg.statusCode = 401;\n}\n\nmsg.headers = { \"Content-Type\": \"application/json\" };\nreturn msg; // <--- MUST BE return msg;",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1110,
+        "y": 320,
+        "wires": [
+            [
+                "26773e52a22cef3c"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "855da4a49b6e0875",
+        "type": "debug",
+        "z": "eb_tab",
+        "name": "debug 1",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "complete msg object",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1480,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "a91586949c7887c4",
+        "type": "function",
+        "z": "eb_tab",
+        "name": "Validate",
+        "func": "msg.user = {\n    id: 1,\n    name: \"Test User\",\n    email: \"test@example.com\",\n    role: \"admin\"\n};\n\n// We don't care about the password right now. Just move forward.\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 280,
+        "y": 320,
+        "wires": [
+            [
+                "5128748defc992f2",
+                "18640d473d56ae9c"
+            ]
+        ]
+    },
+    {
+        "id": "26773e52a22cef3c",
+        "type": "http response",
+        "z": "eb_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "msg.headers": "msg.payload"
+        },
+        "x": 1350,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "eff83465c25ed99c",
+        "type": "catch",
+        "z": "eb_tab",
+        "name": "",
+        "scope": null,
+        "uncaught": false,
+        "x": 1340,
+        "y": 260,
+        "wires": [
+            [
+                "855da4a49b6e0875",
+                "26773e52a22cef3c"
+            ]
+        ]
+    },
+    {
+        "id": "18640d473d56ae9c",
+        "type": "debug",
+        "z": "eb_tab",
+        "name": "debug 2",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 540,
+        "y": 300,
+        "wires": []
+    },
+    {
         "id": "eco0001",
         "type": "comment",
         "z": "ecotab1",
@@ -6418,6 +6485,7 @@
         "url": "/api/users",
         "method": "get",
         "upload": false,
+        "skipBodyParsing": false,
         "swaggerDoc": "",
         "x": 190,
         "y": 50,
