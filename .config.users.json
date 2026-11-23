@@ -27,7 +27,7 @@
                                 "context",
                                 "dashboard"
                             ],
-                            "height": 103.03454599999999,
+                            "height": 104.47754599999999,
                             "hidden": false,
                             "active": "config"
                         },
@@ -45,7 +45,7 @@
                             "tabs": [
                                 "explorer"
                             ],
-                            "height": 263.034546,
+                            "height": 264.488546,
                             "hidden": false,
                             "active": "explorer"
                         },

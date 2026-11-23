@@ -870,7 +870,7 @@
             "content-type": "application/json"
         },
         "x": 1500,
-        "y": 80,
+        "y": 60,
         "wires": []
     },
     {
@@ -1101,12 +1101,14 @@
         "type": "debug",
         "z": "eb_tab",
         "name": "Seed result",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
         "complete": "payload",
         "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
         "x": 1520,
         "y": 155,
         "wires": []
@@ -4243,8 +4245,8 @@
         "method": "post",
         "upload": false,
         "swaggerDoc": "",
-        "x": 190,
-        "y": 210,
+        "x": 140,
+        "y": 200,
         "wires": [
             [
                 "eco0009"
@@ -4256,18 +4258,18 @@
         "type": "function",
         "z": "ecotab1",
         "name": "auth.login",
-        "func": "const eco = global.get('eco');\nreturn eco.handle('auth.login', msg);",
+        "func": "\nconst body = msg.payload || {};\n\nconst email = body.email;\nconst password = body.password;\n\nif (!email || !password) {\n    msg.statusCode = 400;\n    msg.payload = {\n        success: false,\n        message: \"Email and password are required.\"\n    };\n    return [null, msg];\n}\n\n// Save the entered password temporarily.\n// Do not send it to the SQL query.\nmsg.loginEmail = email.trim().toLowerCase();\nmsg.loginPassword = password;\n\n// SQLite parameterized query\nmsg.topic = `\n    SELECT user_ID, email, password\n    FROM Users\n    WHERE LOWER(email) = ?\n`;\n\nmsg.payload = [msg.loginEmail];\n\nreturn [msg, null];\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 470,
-        "y": 210,
+        "x": 340,
+        "y": 200,
         "wires": [
             [
-                "eco0010"
+                "e4e93fd3c9375b34"
             ]
         ]
     },
@@ -4280,8 +4282,8 @@
         "headers": {
             "Content-Type": "application/json"
         },
-        "x": 700,
-        "y": 210,
+        "x": 850,
+        "y": 200,
         "wires": []
     },
     {
@@ -4531,6 +4533,42 @@
         "x": 700,
         "y": 505,
         "wires": []
+    },
+    {
+        "id": "e4e93fd3c9375b34",
+        "type": "sqlite",
+        "z": "ecotab1",
+        "mydb": "73e7995ec6aa1a35",
+        "sqlquery": "msg.topic",
+        "sql": "",
+        "name": "",
+        "x": 550,
+        "y": 200,
+        "wires": [
+            [
+                "61c89b4c53f6a0b2"
+            ]
+        ]
+    },
+    {
+        "id": "61c89b4c53f6a0b2",
+        "type": "function",
+        "z": "ecotab1",
+        "name": "validate",
+        "func": "\nconst bcrypt = require(\"bcryptjs\");\n\nconst rows = msg.payload;\n\nasync function validateLogin() {\n    if (!Array.isArray(rows) || rows.length === 0) {\n        msg.statusCode = 401;\n        msg.payload = {\n            success: false,\n            message: \"Invalid email or password. Please try again.\"\n        };\n        return;\n    }\n\n    const user = rows[0];\n\n    if (!user.password) {\n        msg.statusCode = 401;\n        msg.payload = {\n            success: false,\n            message: \"Invalid email or password. Please try again.\"\n        };\n        return;\n    }\n\n    const isValid = await bcrypt.compare(\n        msg.loginPassword,\n        user.password\n    );\n\n    if (!isValid) {\n        msg.statusCode = 401;\n        msg.payload = {\n            success: false,\n            message: \"Invalid email or password. Please try again.\"\n        };\n        return;\n    }\n\n    msg.statusCode = 200;\n\n    msg.payload = {\n        success: true,\n        message: \"Login successful\",\n        user: {\n            id: user.user_ID,\n            email: user.email\n        }\n    };\n}\n\nreturn validateLogin()\n    .then(() => msg)\n    .catch(err => {\n        node.error(\"Login validation failed: \" + err.message, msg);\n        msg.statusCode = 500;\n        msg.payload = {\n            success: false,\n            message: \"An authentication error occurred.\"\n        };\n        return msg;\n    });\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 720,
+        "y": 200,
+        "wires": [
+            [
+                "eco0010"
+            ]
+        ]
     },
     {
         "id": "eco0026",

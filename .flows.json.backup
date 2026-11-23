@@ -27,6 +27,55 @@
         ]
     },
     {
+        "id": "ecotab1",
+        "type": "tab",
+        "label": "1. Auth & Dashboard",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "ecotab2",
+        "type": "tab",
+        "label": "2. Buildings & Rooms",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "ecotab3",
+        "type": "tab",
+        "label": "3. Sensors",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "ecotab4",
+        "type": "tab",
+        "label": "4. Appliances",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "ecotab5",
+        "type": "tab",
+        "label": "5. Automation & Alerts",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "ecotab6",
+        "type": "tab",
+        "label": "6. Users (admin)",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "ecotab7",
+        "type": "tab",
+        "label": "7. ESP32 Devices",
+        "disabled": false,
+        "info": ""
+    },
+    {
         "id": "73e7995ec6aa1a35",
         "type": "sqlitedb",
         "db": "C:\\tmp\\ecobuild.db",
@@ -821,7 +870,7 @@
             "content-type": "application/json"
         },
         "x": 1500,
-        "y": 80,
+        "y": 60,
         "wires": []
     },
     {
@@ -4074,5 +4123,2958 @@
         "wires": [
             []
         ]
+    },
+    {
+        "id": "eco0001",
+        "type": "comment",
+        "z": "ecotab1",
+        "name": "AUTH & DASHBOARD",
+        "info": "AUTH & DASHBOARD\nEvery endpoint = http in -> function -> http response.\nThe function only calls eco.handle('<name>', msg). The real code lives in ~/.node-red/ecobuild/index.js",
+        "x": 300,
+        "y": 50,
+        "wires": []
+    },
+    {
+        "id": "eco0002",
+        "type": "http in",
+        "z": "ecotab1",
+        "name": "GET /api/health",
+        "url": "/api/health",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 100,
+        "wires": [
+            [
+                "eco0003"
+            ]
+        ]
+    },
+    {
+        "id": "eco0003",
+        "type": "function",
+        "z": "ecotab1",
+        "name": "health",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('health', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 100,
+        "wires": [
+            [
+                "eco0004"
+            ]
+        ]
+    },
+    {
+        "id": "eco0004",
+        "type": "http response",
+        "z": "ecotab1",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "eco0005",
+        "type": "http in",
+        "z": "ecotab1",
+        "name": "POST /api/signup",
+        "url": "/api/signup",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 155,
+        "wires": [
+            [
+                "eco0006"
+            ]
+        ]
+    },
+    {
+        "id": "eco0006",
+        "type": "function",
+        "z": "ecotab1",
+        "name": "auth.signup",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('auth.signup', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 155,
+        "wires": [
+            [
+                "eco0007"
+            ]
+        ]
+    },
+    {
+        "id": "eco0007",
+        "type": "http response",
+        "z": "ecotab1",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 155,
+        "wires": []
+    },
+    {
+        "id": "eco0008",
+        "type": "http in",
+        "z": "ecotab1",
+        "name": "POST /api/login",
+        "url": "/api/login",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 140,
+        "y": 200,
+        "wires": [
+            [
+                "eco0009"
+            ]
+        ]
+    },
+    {
+        "id": "eco0009",
+        "type": "function",
+        "z": "ecotab1",
+        "name": "auth.login",
+        "func": "\nconst body = msg.payload || {};\n\nconst email = body.email;\nconst password = body.password;\n\nif (!email || !password) {\n    msg.statusCode = 400;\n    msg.payload = {\n        success: false,\n        message: \"Email and password are required.\"\n    };\n    return [null, msg];\n}\n\n// Save the entered password temporarily.\n// Do not send it to the SQL query.\nmsg.loginEmail = email.trim().toLowerCase();\nmsg.loginPassword = password;\n\n// SQLite parameterized query\nmsg.topic = `\n    SELECT user_ID, email, password\n    FROM Users\n    WHERE LOWER(email) = ?\n`;\n\nmsg.payload = [msg.loginEmail];\n\nreturn [msg, null];\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 200,
+        "wires": [
+            [
+                "e4e93fd3c9375b34"
+            ]
+        ]
+    },
+    {
+        "id": "eco0010",
+        "type": "http response",
+        "z": "ecotab1",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 850,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "eco0011",
+        "type": "http in",
+        "z": "ecotab1",
+        "name": "GET /api/me",
+        "url": "/api/me",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 265,
+        "wires": [
+            [
+                "eco0012"
+            ]
+        ]
+    },
+    {
+        "id": "eco0012",
+        "type": "function",
+        "z": "ecotab1",
+        "name": "auth.me",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('auth.me', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 265,
+        "wires": [
+            [
+                "eco0013"
+            ]
+        ]
+    },
+    {
+        "id": "eco0013",
+        "type": "http response",
+        "z": "ecotab1",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 265,
+        "wires": []
+    },
+    {
+        "id": "eco0014",
+        "type": "http in",
+        "z": "ecotab1",
+        "name": "PUT /api/me",
+        "url": "/api/me",
+        "method": "put",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 320,
+        "wires": [
+            [
+                "eco0015"
+            ]
+        ]
+    },
+    {
+        "id": "eco0015",
+        "type": "function",
+        "z": "ecotab1",
+        "name": "auth.updateMe",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('auth.updateMe', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 320,
+        "wires": [
+            [
+                "eco0016"
+            ]
+        ]
+    },
+    {
+        "id": "eco0016",
+        "type": "http response",
+        "z": "ecotab1",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "eco0017",
+        "type": "http in",
+        "z": "ecotab1",
+        "name": "POST /api/logout",
+        "url": "/api/logout",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 375,
+        "wires": [
+            [
+                "eco0018"
+            ]
+        ]
+    },
+    {
+        "id": "eco0018",
+        "type": "function",
+        "z": "ecotab1",
+        "name": "auth.logout",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('auth.logout', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 375,
+        "wires": [
+            [
+                "eco0019"
+            ]
+        ]
+    },
+    {
+        "id": "eco0019",
+        "type": "http response",
+        "z": "ecotab1",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 375,
+        "wires": []
+    },
+    {
+        "id": "eco0020",
+        "type": "http in",
+        "z": "ecotab1",
+        "name": "GET /api/dashboard",
+        "url": "/api/dashboard",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 430,
+        "wires": [
+            [
+                "eco0021"
+            ]
+        ]
+    },
+    {
+        "id": "eco0021",
+        "type": "function",
+        "z": "ecotab1",
+        "name": "dashboard",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('dashboard', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 430,
+        "wires": [
+            [
+                "eco0022"
+            ]
+        ]
+    },
+    {
+        "id": "eco0022",
+        "type": "http response",
+        "z": "ecotab1",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 430,
+        "wires": []
+    },
+    {
+        "id": "eco0023",
+        "type": "catch",
+        "z": "ecotab1",
+        "name": "unexpected errors",
+        "scope": null,
+        "uncaught": false,
+        "x": 190,
+        "y": 505,
+        "wires": [
+            [
+                "eco0024"
+            ]
+        ]
+    },
+    {
+        "id": "eco0024",
+        "type": "function",
+        "z": "ecotab1",
+        "name": "JSON 500",
+        "func": "msg.statusCode = 500;\nmsg.payload = { success: false, error: 'Server error: ' + (msg.error && msg.error.message || 'unknown') };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 505,
+        "wires": [
+            [
+                "eco0025"
+            ]
+        ]
+    },
+    {
+        "id": "eco0025",
+        "type": "http response",
+        "z": "ecotab1",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 505,
+        "wires": []
+    },
+    {
+        "id": "e4e93fd3c9375b34",
+        "type": "sqlite",
+        "z": "ecotab1",
+        "mydb": "73e7995ec6aa1a35",
+        "sqlquery": "msg.topic",
+        "sql": "",
+        "name": "",
+        "x": 550,
+        "y": 200,
+        "wires": [
+            [
+                "61c89b4c53f6a0b2"
+            ]
+        ]
+    },
+    {
+        "id": "61c89b4c53f6a0b2",
+        "type": "function",
+        "z": "ecotab1",
+        "name": "validate",
+        "func": "\nconst bcrypt = require(\"bcryptjs\");\n\nconst rows = msg.payload;\n\nasync function validateLogin() {\n    if (!Array.isArray(rows) || rows.length === 0) {\n        msg.statusCode = 401;\n        msg.payload = {\n            success: false,\n            message: \"Invalid email or password. Please try again.\"\n        };\n        return;\n    }\n\n    const user = rows[0];\n\n    if (!user.password) {\n        msg.statusCode = 401;\n        msg.payload = {\n            success: false,\n            message: \"Invalid email or password. Please try again.\"\n        };\n        return;\n    }\n\n    const isValid = await bcrypt.compare(\n        msg.loginPassword,\n        user.password\n    );\n\n    if (!isValid) {\n        msg.statusCode = 401;\n        msg.payload = {\n            success: false,\n            message: \"Invalid email or password. Please try again.\"\n        };\n        return;\n    }\n\n    msg.statusCode = 200;\n\n    msg.payload = {\n        success: true,\n        message: \"Login successful\",\n        user: {\n            id: user.user_ID,\n            email: user.email\n        }\n    };\n}\n\nreturn validateLogin()\n    .then(() => msg)\n    .catch(err => {\n        node.error(\"Login validation failed: \" + err.message, msg);\n        msg.statusCode = 500;\n        msg.payload = {\n            success: false,\n            message: \"An authentication error occurred.\"\n        };\n        return msg;\n    });\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 720,
+        "y": 200,
+        "wires": [
+            [
+                "eco0010"
+            ]
+        ]
+    },
+    {
+        "id": "eco0026",
+        "type": "http in",
+        "z": "ecotab2",
+        "name": "GET /api/buildings",
+        "url": "/api/buildings",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 50,
+        "wires": [
+            [
+                "eco0027"
+            ]
+        ]
+    },
+    {
+        "id": "eco0027",
+        "type": "function",
+        "z": "ecotab2",
+        "name": "buildings.list",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('buildings.list', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 50,
+        "wires": [
+            [
+                "eco0028"
+            ]
+        ]
+    },
+    {
+        "id": "eco0028",
+        "type": "http response",
+        "z": "ecotab2",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 50,
+        "wires": []
+    },
+    {
+        "id": "eco0029",
+        "type": "http in",
+        "z": "ecotab2",
+        "name": "GET /api/buildings/:id",
+        "url": "/api/buildings/:id",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 105,
+        "wires": [
+            [
+                "eco0030"
+            ]
+        ]
+    },
+    {
+        "id": "eco0030",
+        "type": "function",
+        "z": "ecotab2",
+        "name": "buildings.get",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('buildings.get', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 105,
+        "wires": [
+            [
+                "eco0031"
+            ]
+        ]
+    },
+    {
+        "id": "eco0031",
+        "type": "http response",
+        "z": "ecotab2",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 105,
+        "wires": []
+    },
+    {
+        "id": "eco0032",
+        "type": "http in",
+        "z": "ecotab2",
+        "name": "POST /api/buildings",
+        "url": "/api/buildings",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 160,
+        "wires": [
+            [
+                "eco0033"
+            ]
+        ]
+    },
+    {
+        "id": "eco0033",
+        "type": "function",
+        "z": "ecotab2",
+        "name": "buildings.create",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('buildings.create', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 160,
+        "wires": [
+            [
+                "eco0034"
+            ]
+        ]
+    },
+    {
+        "id": "eco0034",
+        "type": "http response",
+        "z": "ecotab2",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "eco0035",
+        "type": "http in",
+        "z": "ecotab2",
+        "name": "PUT /api/buildings/:id",
+        "url": "/api/buildings/:id",
+        "method": "put",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 215,
+        "wires": [
+            [
+                "eco0036"
+            ]
+        ]
+    },
+    {
+        "id": "eco0036",
+        "type": "function",
+        "z": "ecotab2",
+        "name": "buildings.update",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('buildings.update', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 215,
+        "wires": [
+            [
+                "eco0037"
+            ]
+        ]
+    },
+    {
+        "id": "eco0037",
+        "type": "http response",
+        "z": "ecotab2",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 215,
+        "wires": []
+    },
+    {
+        "id": "eco0038",
+        "type": "http in",
+        "z": "ecotab2",
+        "name": "DELETE /api/buildings/:id",
+        "url": "/api/buildings/:id",
+        "method": "delete",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 270,
+        "wires": [
+            [
+                "eco0039"
+            ]
+        ]
+    },
+    {
+        "id": "eco0039",
+        "type": "function",
+        "z": "ecotab2",
+        "name": "buildings.delete",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('buildings.delete', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 270,
+        "wires": [
+            [
+                "eco0040"
+            ]
+        ]
+    },
+    {
+        "id": "eco0040",
+        "type": "http response",
+        "z": "ecotab2",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 270,
+        "wires": []
+    },
+    {
+        "id": "eco0041",
+        "type": "http in",
+        "z": "ecotab2",
+        "name": "GET /api/rooms",
+        "url": "/api/rooms",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 325,
+        "wires": [
+            [
+                "eco0042"
+            ]
+        ]
+    },
+    {
+        "id": "eco0042",
+        "type": "function",
+        "z": "ecotab2",
+        "name": "rooms.list",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('rooms.list', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 325,
+        "wires": [
+            [
+                "eco0043"
+            ]
+        ]
+    },
+    {
+        "id": "eco0043",
+        "type": "http response",
+        "z": "ecotab2",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 325,
+        "wires": []
+    },
+    {
+        "id": "eco0044",
+        "type": "http in",
+        "z": "ecotab2",
+        "name": "GET /api/rooms/:id",
+        "url": "/api/rooms/:id",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 380,
+        "wires": [
+            [
+                "eco0045"
+            ]
+        ]
+    },
+    {
+        "id": "eco0045",
+        "type": "function",
+        "z": "ecotab2",
+        "name": "rooms.get",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('rooms.get', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 380,
+        "wires": [
+            [
+                "eco0046"
+            ]
+        ]
+    },
+    {
+        "id": "eco0046",
+        "type": "http response",
+        "z": "ecotab2",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "eco0047",
+        "type": "http in",
+        "z": "ecotab2",
+        "name": "POST /api/rooms",
+        "url": "/api/rooms",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 435,
+        "wires": [
+            [
+                "eco0048"
+            ]
+        ]
+    },
+    {
+        "id": "eco0048",
+        "type": "function",
+        "z": "ecotab2",
+        "name": "rooms.create",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('rooms.create', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 435,
+        "wires": [
+            [
+                "eco0049"
+            ]
+        ]
+    },
+    {
+        "id": "eco0049",
+        "type": "http response",
+        "z": "ecotab2",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 435,
+        "wires": []
+    },
+    {
+        "id": "eco0050",
+        "type": "http in",
+        "z": "ecotab2",
+        "name": "PUT /api/rooms/:id",
+        "url": "/api/rooms/:id",
+        "method": "put",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 490,
+        "wires": [
+            [
+                "eco0051"
+            ]
+        ]
+    },
+    {
+        "id": "eco0051",
+        "type": "function",
+        "z": "ecotab2",
+        "name": "rooms.update",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('rooms.update', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 490,
+        "wires": [
+            [
+                "eco0052"
+            ]
+        ]
+    },
+    {
+        "id": "eco0052",
+        "type": "http response",
+        "z": "ecotab2",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 490,
+        "wires": []
+    },
+    {
+        "id": "eco0053",
+        "type": "http in",
+        "z": "ecotab2",
+        "name": "DELETE /api/rooms/:id",
+        "url": "/api/rooms/:id",
+        "method": "delete",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 545,
+        "wires": [
+            [
+                "eco0054"
+            ]
+        ]
+    },
+    {
+        "id": "eco0054",
+        "type": "function",
+        "z": "ecotab2",
+        "name": "rooms.delete",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('rooms.delete', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 545,
+        "wires": [
+            [
+                "eco0055"
+            ]
+        ]
+    },
+    {
+        "id": "eco0055",
+        "type": "http response",
+        "z": "ecotab2",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 545,
+        "wires": []
+    },
+    {
+        "id": "eco0056",
+        "type": "catch",
+        "z": "ecotab2",
+        "name": "unexpected errors",
+        "scope": null,
+        "uncaught": false,
+        "x": 190,
+        "y": 620,
+        "wires": [
+            [
+                "eco0057"
+            ]
+        ]
+    },
+    {
+        "id": "eco0057",
+        "type": "function",
+        "z": "ecotab2",
+        "name": "JSON 500",
+        "func": "msg.statusCode = 500;\nmsg.payload = { success: false, error: 'Server error: ' + (msg.error && msg.error.message || 'unknown') };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 620,
+        "wires": [
+            [
+                "eco0058"
+            ]
+        ]
+    },
+    {
+        "id": "eco0058",
+        "type": "http response",
+        "z": "ecotab2",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "eco0059",
+        "type": "http in",
+        "z": "ecotab3",
+        "name": "GET /api/sensors",
+        "url": "/api/sensors",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 50,
+        "wires": [
+            [
+                "eco0060"
+            ]
+        ]
+    },
+    {
+        "id": "eco0060",
+        "type": "function",
+        "z": "ecotab3",
+        "name": "sensors.list",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('sensors.list', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 50,
+        "wires": [
+            [
+                "eco0061"
+            ]
+        ]
+    },
+    {
+        "id": "eco0061",
+        "type": "http response",
+        "z": "ecotab3",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 50,
+        "wires": []
+    },
+    {
+        "id": "eco0062",
+        "type": "http in",
+        "z": "ecotab3",
+        "name": "GET /api/sensors/chart",
+        "url": "/api/sensors/chart",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 105,
+        "wires": [
+            [
+                "eco0063"
+            ]
+        ]
+    },
+    {
+        "id": "eco0063",
+        "type": "function",
+        "z": "ecotab3",
+        "name": "sensors.chart",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('sensors.chart', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 105,
+        "wires": [
+            [
+                "eco0064"
+            ]
+        ]
+    },
+    {
+        "id": "eco0064",
+        "type": "http response",
+        "z": "ecotab3",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 105,
+        "wires": []
+    },
+    {
+        "id": "eco0065",
+        "type": "http in",
+        "z": "ecotab3",
+        "name": "GET /api/sensors/:id/readings",
+        "url": "/api/sensors/:id/readings",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 160,
+        "wires": [
+            [
+                "eco0066"
+            ]
+        ]
+    },
+    {
+        "id": "eco0066",
+        "type": "function",
+        "z": "ecotab3",
+        "name": "sensors.readings",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('sensors.readings', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 160,
+        "wires": [
+            [
+                "eco0067"
+            ]
+        ]
+    },
+    {
+        "id": "eco0067",
+        "type": "http response",
+        "z": "ecotab3",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "eco0068",
+        "type": "http in",
+        "z": "ecotab3",
+        "name": "POST /api/sensors",
+        "url": "/api/sensors",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 215,
+        "wires": [
+            [
+                "eco0069"
+            ]
+        ]
+    },
+    {
+        "id": "eco0069",
+        "type": "function",
+        "z": "ecotab3",
+        "name": "sensors.create",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('sensors.create', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 215,
+        "wires": [
+            [
+                "eco0070"
+            ]
+        ]
+    },
+    {
+        "id": "eco0070",
+        "type": "http response",
+        "z": "ecotab3",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 215,
+        "wires": []
+    },
+    {
+        "id": "eco0071",
+        "type": "http in",
+        "z": "ecotab3",
+        "name": "DELETE /api/sensors/:id",
+        "url": "/api/sensors/:id",
+        "method": "delete",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 270,
+        "wires": [
+            [
+                "eco0072"
+            ]
+        ]
+    },
+    {
+        "id": "eco0072",
+        "type": "function",
+        "z": "ecotab3",
+        "name": "sensors.delete",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('sensors.delete', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 270,
+        "wires": [
+            [
+                "eco0073"
+            ]
+        ]
+    },
+    {
+        "id": "eco0073",
+        "type": "http response",
+        "z": "ecotab3",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 270,
+        "wires": []
+    },
+    {
+        "id": "eco0074",
+        "type": "http in",
+        "z": "ecotab3",
+        "name": "GET /api/controllers",
+        "url": "/api/controllers",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 325,
+        "wires": [
+            [
+                "eco0075"
+            ]
+        ]
+    },
+    {
+        "id": "eco0075",
+        "type": "function",
+        "z": "ecotab3",
+        "name": "controllers.list",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('controllers.list', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 325,
+        "wires": [
+            [
+                "eco0076"
+            ]
+        ]
+    },
+    {
+        "id": "eco0076",
+        "type": "http response",
+        "z": "ecotab3",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 325,
+        "wires": []
+    },
+    {
+        "id": "eco0077",
+        "type": "http in",
+        "z": "ecotab3",
+        "name": "POST /api/controllers",
+        "url": "/api/controllers",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 380,
+        "wires": [
+            [
+                "eco0078"
+            ]
+        ]
+    },
+    {
+        "id": "eco0078",
+        "type": "function",
+        "z": "ecotab3",
+        "name": "controllers.create",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('controllers.create', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 380,
+        "wires": [
+            [
+                "eco0079"
+            ]
+        ]
+    },
+    {
+        "id": "eco0079",
+        "type": "http response",
+        "z": "ecotab3",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "eco0080",
+        "type": "http in",
+        "z": "ecotab3",
+        "name": "DELETE /api/controllers/:id",
+        "url": "/api/controllers/:id",
+        "method": "delete",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 435,
+        "wires": [
+            [
+                "eco0081"
+            ]
+        ]
+    },
+    {
+        "id": "eco0081",
+        "type": "function",
+        "z": "ecotab3",
+        "name": "controllers.delete",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('controllers.delete', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 435,
+        "wires": [
+            [
+                "eco0082"
+            ]
+        ]
+    },
+    {
+        "id": "eco0082",
+        "type": "http response",
+        "z": "ecotab3",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 435,
+        "wires": []
+    },
+    {
+        "id": "eco0083",
+        "type": "catch",
+        "z": "ecotab3",
+        "name": "unexpected errors",
+        "scope": null,
+        "uncaught": false,
+        "x": 190,
+        "y": 510,
+        "wires": [
+            [
+                "eco0084"
+            ]
+        ]
+    },
+    {
+        "id": "eco0084",
+        "type": "function",
+        "z": "ecotab3",
+        "name": "JSON 500",
+        "func": "msg.statusCode = 500;\nmsg.payload = { success: false, error: 'Server error: ' + (msg.error && msg.error.message || 'unknown') };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 510,
+        "wires": [
+            [
+                "eco0085"
+            ]
+        ]
+    },
+    {
+        "id": "eco0085",
+        "type": "http response",
+        "z": "ecotab3",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 510,
+        "wires": []
+    },
+    {
+        "id": "eco0086",
+        "type": "http in",
+        "z": "ecotab4",
+        "name": "GET /api/appliances",
+        "url": "/api/appliances",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 50,
+        "wires": [
+            [
+                "eco0087"
+            ]
+        ]
+    },
+    {
+        "id": "eco0087",
+        "type": "function",
+        "z": "ecotab4",
+        "name": "appliances.list",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('appliances.list', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 50,
+        "wires": [
+            [
+                "eco0088"
+            ]
+        ]
+    },
+    {
+        "id": "eco0088",
+        "type": "http response",
+        "z": "ecotab4",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 50,
+        "wires": []
+    },
+    {
+        "id": "eco0089",
+        "type": "http in",
+        "z": "ecotab4",
+        "name": "POST /api/appliances",
+        "url": "/api/appliances",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 105,
+        "wires": [
+            [
+                "eco0090"
+            ]
+        ]
+    },
+    {
+        "id": "eco0090",
+        "type": "function",
+        "z": "ecotab4",
+        "name": "appliances.create",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('appliances.create', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 105,
+        "wires": [
+            [
+                "eco0091"
+            ]
+        ]
+    },
+    {
+        "id": "eco0091",
+        "type": "http response",
+        "z": "ecotab4",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 105,
+        "wires": []
+    },
+    {
+        "id": "eco0092",
+        "type": "http in",
+        "z": "ecotab4",
+        "name": "PUT /api/appliances/:id",
+        "url": "/api/appliances/:id",
+        "method": "put",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 160,
+        "wires": [
+            [
+                "eco0093"
+            ]
+        ]
+    },
+    {
+        "id": "eco0093",
+        "type": "function",
+        "z": "ecotab4",
+        "name": "appliances.update",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('appliances.update', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 160,
+        "wires": [
+            [
+                "eco0094"
+            ]
+        ]
+    },
+    {
+        "id": "eco0094",
+        "type": "http response",
+        "z": "ecotab4",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "eco0095",
+        "type": "http in",
+        "z": "ecotab4",
+        "name": "DELETE /api/appliances/:id",
+        "url": "/api/appliances/:id",
+        "method": "delete",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 215,
+        "wires": [
+            [
+                "eco0096"
+            ]
+        ]
+    },
+    {
+        "id": "eco0096",
+        "type": "function",
+        "z": "ecotab4",
+        "name": "appliances.delete",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('appliances.delete', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 215,
+        "wires": [
+            [
+                "eco0097"
+            ]
+        ]
+    },
+    {
+        "id": "eco0097",
+        "type": "http response",
+        "z": "ecotab4",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 215,
+        "wires": []
+    },
+    {
+        "id": "eco0098",
+        "type": "http in",
+        "z": "ecotab4",
+        "name": "POST /api/appliances/:id/control",
+        "url": "/api/appliances/:id/control",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 270,
+        "wires": [
+            [
+                "eco0099"
+            ]
+        ]
+    },
+    {
+        "id": "eco0099",
+        "type": "function",
+        "z": "ecotab4",
+        "name": "appliances.control",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('appliances.control', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 270,
+        "wires": [
+            [
+                "eco0100"
+            ]
+        ]
+    },
+    {
+        "id": "eco0100",
+        "type": "http response",
+        "z": "ecotab4",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 270,
+        "wires": []
+    },
+    {
+        "id": "eco0101",
+        "type": "http in",
+        "z": "ecotab4",
+        "name": "GET /api/appliances/:id/ir-codes",
+        "url": "/api/appliances/:id/ir-codes",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 325,
+        "wires": [
+            [
+                "eco0102"
+            ]
+        ]
+    },
+    {
+        "id": "eco0102",
+        "type": "function",
+        "z": "ecotab4",
+        "name": "appliances.ir.list",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('appliances.ir.list', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 325,
+        "wires": [
+            [
+                "eco0103"
+            ]
+        ]
+    },
+    {
+        "id": "eco0103",
+        "type": "http response",
+        "z": "ecotab4",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 325,
+        "wires": []
+    },
+    {
+        "id": "eco0104",
+        "type": "http in",
+        "z": "ecotab4",
+        "name": "POST /api/appliances/:id/ir-codes",
+        "url": "/api/appliances/:id/ir-codes",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 380,
+        "wires": [
+            [
+                "eco0105"
+            ]
+        ]
+    },
+    {
+        "id": "eco0105",
+        "type": "function",
+        "z": "ecotab4",
+        "name": "appliances.ir.create",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('appliances.ir.create', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 380,
+        "wires": [
+            [
+                "eco0106"
+            ]
+        ]
+    },
+    {
+        "id": "eco0106",
+        "type": "http response",
+        "z": "ecotab4",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "eco0107",
+        "type": "catch",
+        "z": "ecotab4",
+        "name": "unexpected errors",
+        "scope": null,
+        "uncaught": false,
+        "x": 190,
+        "y": 455,
+        "wires": [
+            [
+                "eco0108"
+            ]
+        ]
+    },
+    {
+        "id": "eco0108",
+        "type": "function",
+        "z": "ecotab4",
+        "name": "JSON 500",
+        "func": "msg.statusCode = 500;\nmsg.payload = { success: false, error: 'Server error: ' + (msg.error && msg.error.message || 'unknown') };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 455,
+        "wires": [
+            [
+                "eco0109"
+            ]
+        ]
+    },
+    {
+        "id": "eco0109",
+        "type": "http response",
+        "z": "ecotab4",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 455,
+        "wires": []
+    },
+    {
+        "id": "eco0110",
+        "type": "http in",
+        "z": "ecotab5",
+        "name": "GET /api/rules",
+        "url": "/api/rules",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 50,
+        "wires": [
+            [
+                "eco0111"
+            ]
+        ]
+    },
+    {
+        "id": "eco0111",
+        "type": "function",
+        "z": "ecotab5",
+        "name": "rules.list",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('rules.list', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 50,
+        "wires": [
+            [
+                "eco0112"
+            ]
+        ]
+    },
+    {
+        "id": "eco0112",
+        "type": "http response",
+        "z": "ecotab5",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 50,
+        "wires": []
+    },
+    {
+        "id": "eco0113",
+        "type": "http in",
+        "z": "ecotab5",
+        "name": "POST /api/rules",
+        "url": "/api/rules",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 105,
+        "wires": [
+            [
+                "eco0114"
+            ]
+        ]
+    },
+    {
+        "id": "eco0114",
+        "type": "function",
+        "z": "ecotab5",
+        "name": "rules.create",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('rules.create', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 105,
+        "wires": [
+            [
+                "eco0115"
+            ]
+        ]
+    },
+    {
+        "id": "eco0115",
+        "type": "http response",
+        "z": "ecotab5",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 105,
+        "wires": []
+    },
+    {
+        "id": "eco0116",
+        "type": "http in",
+        "z": "ecotab5",
+        "name": "PUT /api/rules/:id",
+        "url": "/api/rules/:id",
+        "method": "put",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 160,
+        "wires": [
+            [
+                "eco0117"
+            ]
+        ]
+    },
+    {
+        "id": "eco0117",
+        "type": "function",
+        "z": "ecotab5",
+        "name": "rules.update",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('rules.update', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 160,
+        "wires": [
+            [
+                "eco0118"
+            ]
+        ]
+    },
+    {
+        "id": "eco0118",
+        "type": "http response",
+        "z": "ecotab5",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "eco0119",
+        "type": "http in",
+        "z": "ecotab5",
+        "name": "POST /api/rules/:id/toggle",
+        "url": "/api/rules/:id/toggle",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 215,
+        "wires": [
+            [
+                "eco0120"
+            ]
+        ]
+    },
+    {
+        "id": "eco0120",
+        "type": "function",
+        "z": "ecotab5",
+        "name": "rules.toggle",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('rules.toggle', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 215,
+        "wires": [
+            [
+                "eco0121"
+            ]
+        ]
+    },
+    {
+        "id": "eco0121",
+        "type": "http response",
+        "z": "ecotab5",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 215,
+        "wires": []
+    },
+    {
+        "id": "eco0122",
+        "type": "http in",
+        "z": "ecotab5",
+        "name": "DELETE /api/rules/:id",
+        "url": "/api/rules/:id",
+        "method": "delete",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 270,
+        "wires": [
+            [
+                "eco0123"
+            ]
+        ]
+    },
+    {
+        "id": "eco0123",
+        "type": "function",
+        "z": "ecotab5",
+        "name": "rules.delete",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('rules.delete', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 270,
+        "wires": [
+            [
+                "eco0124"
+            ]
+        ]
+    },
+    {
+        "id": "eco0124",
+        "type": "http response",
+        "z": "ecotab5",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 270,
+        "wires": []
+    },
+    {
+        "id": "eco0125",
+        "type": "http in",
+        "z": "ecotab5",
+        "name": "GET /api/notifications",
+        "url": "/api/notifications",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 325,
+        "wires": [
+            [
+                "eco0126"
+            ]
+        ]
+    },
+    {
+        "id": "eco0126",
+        "type": "function",
+        "z": "ecotab5",
+        "name": "notifications.list",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('notifications.list', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 325,
+        "wires": [
+            [
+                "eco0127"
+            ]
+        ]
+    },
+    {
+        "id": "eco0127",
+        "type": "http response",
+        "z": "ecotab5",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 325,
+        "wires": []
+    },
+    {
+        "id": "eco0128",
+        "type": "http in",
+        "z": "ecotab5",
+        "name": "POST /api/notifications/read-all",
+        "url": "/api/notifications/read-all",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 380,
+        "wires": [
+            [
+                "eco0129"
+            ]
+        ]
+    },
+    {
+        "id": "eco0129",
+        "type": "function",
+        "z": "ecotab5",
+        "name": "notifications.readAll",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('notifications.readAll', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 380,
+        "wires": [
+            [
+                "eco0130"
+            ]
+        ]
+    },
+    {
+        "id": "eco0130",
+        "type": "http response",
+        "z": "ecotab5",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "eco0131",
+        "type": "http in",
+        "z": "ecotab5",
+        "name": "POST /api/notifications/:id/read",
+        "url": "/api/notifications/:id/read",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 435,
+        "wires": [
+            [
+                "eco0132"
+            ]
+        ]
+    },
+    {
+        "id": "eco0132",
+        "type": "function",
+        "z": "ecotab5",
+        "name": "notifications.read",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('notifications.read', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 435,
+        "wires": [
+            [
+                "eco0133"
+            ]
+        ]
+    },
+    {
+        "id": "eco0133",
+        "type": "http response",
+        "z": "ecotab5",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 435,
+        "wires": []
+    },
+    {
+        "id": "eco0134",
+        "type": "catch",
+        "z": "ecotab5",
+        "name": "unexpected errors",
+        "scope": null,
+        "uncaught": false,
+        "x": 190,
+        "y": 510,
+        "wires": [
+            [
+                "eco0135"
+            ]
+        ]
+    },
+    {
+        "id": "eco0135",
+        "type": "function",
+        "z": "ecotab5",
+        "name": "JSON 500",
+        "func": "msg.statusCode = 500;\nmsg.payload = { success: false, error: 'Server error: ' + (msg.error && msg.error.message || 'unknown') };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 510,
+        "wires": [
+            [
+                "eco0136"
+            ]
+        ]
+    },
+    {
+        "id": "eco0136",
+        "type": "http response",
+        "z": "ecotab5",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 510,
+        "wires": []
+    },
+    {
+        "id": "eco0137",
+        "type": "http in",
+        "z": "ecotab6",
+        "name": "GET /api/users",
+        "url": "/api/users",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 50,
+        "wires": [
+            [
+                "eco0138"
+            ]
+        ]
+    },
+    {
+        "id": "eco0138",
+        "type": "function",
+        "z": "ecotab6",
+        "name": "users.list",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('users.list', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 50,
+        "wires": [
+            [
+                "eco0139"
+            ]
+        ]
+    },
+    {
+        "id": "eco0139",
+        "type": "http response",
+        "z": "ecotab6",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 50,
+        "wires": []
+    },
+    {
+        "id": "eco0140",
+        "type": "http in",
+        "z": "ecotab6",
+        "name": "PUT /api/users/:id",
+        "url": "/api/users/:id",
+        "method": "put",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 105,
+        "wires": [
+            [
+                "eco0141"
+            ]
+        ]
+    },
+    {
+        "id": "eco0141",
+        "type": "function",
+        "z": "ecotab6",
+        "name": "users.update",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('users.update', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 105,
+        "wires": [
+            [
+                "eco0142"
+            ]
+        ]
+    },
+    {
+        "id": "eco0142",
+        "type": "http response",
+        "z": "ecotab6",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 105,
+        "wires": []
+    },
+    {
+        "id": "eco0143",
+        "type": "http in",
+        "z": "ecotab6",
+        "name": "DELETE /api/users/:id",
+        "url": "/api/users/:id",
+        "method": "delete",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 160,
+        "wires": [
+            [
+                "eco0144"
+            ]
+        ]
+    },
+    {
+        "id": "eco0144",
+        "type": "function",
+        "z": "ecotab6",
+        "name": "users.delete",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('users.delete', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 160,
+        "wires": [
+            [
+                "eco0145"
+            ]
+        ]
+    },
+    {
+        "id": "eco0145",
+        "type": "http response",
+        "z": "ecotab6",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "eco0146",
+        "type": "http in",
+        "z": "ecotab6",
+        "name": "POST /api/users/:id/access",
+        "url": "/api/users/:id/access",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 215,
+        "wires": [
+            [
+                "eco0147"
+            ]
+        ]
+    },
+    {
+        "id": "eco0147",
+        "type": "function",
+        "z": "ecotab6",
+        "name": "users.access.add",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('users.access.add', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 215,
+        "wires": [
+            [
+                "eco0148"
+            ]
+        ]
+    },
+    {
+        "id": "eco0148",
+        "type": "http response",
+        "z": "ecotab6",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 215,
+        "wires": []
+    },
+    {
+        "id": "eco0149",
+        "type": "http in",
+        "z": "ecotab6",
+        "name": "DELETE /api/users/:id/access/:roomId",
+        "url": "/api/users/:id/access/:roomId",
+        "method": "delete",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 270,
+        "wires": [
+            [
+                "eco0150"
+            ]
+        ]
+    },
+    {
+        "id": "eco0150",
+        "type": "function",
+        "z": "ecotab6",
+        "name": "users.access.remove",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('users.access.remove', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 270,
+        "wires": [
+            [
+                "eco0151"
+            ]
+        ]
+    },
+    {
+        "id": "eco0151",
+        "type": "http response",
+        "z": "ecotab6",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 270,
+        "wires": []
+    },
+    {
+        "id": "eco0152",
+        "type": "catch",
+        "z": "ecotab6",
+        "name": "unexpected errors",
+        "scope": null,
+        "uncaught": false,
+        "x": 190,
+        "y": 345,
+        "wires": [
+            [
+                "eco0153"
+            ]
+        ]
+    },
+    {
+        "id": "eco0153",
+        "type": "function",
+        "z": "ecotab6",
+        "name": "JSON 500",
+        "func": "msg.statusCode = 500;\nmsg.payload = { success: false, error: 'Server error: ' + (msg.error && msg.error.message || 'unknown') };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 345,
+        "wires": [
+            [
+                "eco0154"
+            ]
+        ]
+    },
+    {
+        "id": "eco0154",
+        "type": "http response",
+        "z": "ecotab6",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 345,
+        "wires": []
+    },
+    {
+        "id": "eco0155",
+        "type": "comment",
+        "z": "ecotab7",
+        "name": "ESP32 / hardware endpoints. Send header  x-device-key: <DEVICE_KEY from config.js>.",
+        "info": "ESP32 / hardware endpoints. Send header  x-device-key: <DEVICE_KEY from config.js>.\nThe blue inject node at the bottom is a DEMO SIMULATOR: it is disabled by default. Enable it (and Deploy) to generate fake sensor data every 30 seconds.",
+        "x": 300,
+        "y": 50,
+        "wires": []
+    },
+    {
+        "id": "eco0156",
+        "type": "http in",
+        "z": "ecotab7",
+        "name": "POST /api/device/heartbeat",
+        "url": "/api/device/heartbeat",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 100,
+        "wires": [
+            [
+                "eco0157"
+            ]
+        ]
+    },
+    {
+        "id": "eco0157",
+        "type": "function",
+        "z": "ecotab7",
+        "name": "device.heartbeat",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('device.heartbeat', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 100,
+        "wires": [
+            [
+                "eco0158"
+            ]
+        ]
+    },
+    {
+        "id": "eco0158",
+        "type": "http response",
+        "z": "ecotab7",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "eco0159",
+        "type": "http in",
+        "z": "ecotab7",
+        "name": "POST /api/device/readings",
+        "url": "/api/device/readings",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 155,
+        "wires": [
+            [
+                "eco0160"
+            ]
+        ]
+    },
+    {
+        "id": "eco0160",
+        "type": "function",
+        "z": "ecotab7",
+        "name": "device.readings",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('device.readings', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 155,
+        "wires": [
+            [
+                "eco0161"
+            ]
+        ]
+    },
+    {
+        "id": "eco0161",
+        "type": "http response",
+        "z": "ecotab7",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 155,
+        "wires": []
+    },
+    {
+        "id": "eco0162",
+        "type": "http in",
+        "z": "ecotab7",
+        "name": "GET /api/device/commands",
+        "url": "/api/device/commands",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 210,
+        "wires": [
+            [
+                "eco0163"
+            ]
+        ]
+    },
+    {
+        "id": "eco0163",
+        "type": "function",
+        "z": "ecotab7",
+        "name": "device.commands",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('device.commands', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 210,
+        "wires": [
+            [
+                "eco0164"
+            ]
+        ]
+    },
+    {
+        "id": "eco0164",
+        "type": "http response",
+        "z": "ecotab7",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 210,
+        "wires": []
+    },
+    {
+        "id": "eco0165",
+        "type": "http in",
+        "z": "ecotab7",
+        "name": "POST /api/device/commands/:id/confirm",
+        "url": "/api/device/commands/:id/confirm",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 265,
+        "wires": [
+            [
+                "eco0166"
+            ]
+        ]
+    },
+    {
+        "id": "eco0166",
+        "type": "function",
+        "z": "ecotab7",
+        "name": "device.confirm",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('device.confirm', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 265,
+        "wires": [
+            [
+                "eco0167"
+            ]
+        ]
+    },
+    {
+        "id": "eco0167",
+        "type": "http response",
+        "z": "ecotab7",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 265,
+        "wires": []
+    },
+    {
+        "id": "eco0168",
+        "type": "http in",
+        "z": "ecotab7",
+        "name": "POST /api/device/simulate",
+        "url": "/api/device/simulate",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 320,
+        "wires": [
+            [
+                "eco0169"
+            ]
+        ]
+    },
+    {
+        "id": "eco0169",
+        "type": "function",
+        "z": "ecotab7",
+        "name": "device.simulate",
+        "func": "const eco = global.get('eco');\nreturn eco.handle('device.simulate', msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 320,
+        "wires": [
+            [
+                "eco0170"
+            ]
+        ]
+    },
+    {
+        "id": "eco0170",
+        "type": "http response",
+        "z": "ecotab7",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "eco0171",
+        "type": "catch",
+        "z": "ecotab7",
+        "name": "unexpected errors",
+        "scope": null,
+        "uncaught": false,
+        "x": 190,
+        "y": 395,
+        "wires": [
+            [
+                "eco0172"
+            ]
+        ]
+    },
+    {
+        "id": "eco0172",
+        "type": "function",
+        "z": "ecotab7",
+        "name": "JSON 500",
+        "func": "msg.statusCode = 500;\nmsg.payload = { success: false, error: 'Server error: ' + (msg.error && msg.error.message || 'unknown') };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 395,
+        "wires": [
+            [
+                "eco0173"
+            ]
+        ]
+    },
+    {
+        "id": "eco0173",
+        "type": "http response",
+        "z": "ecotab7",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 700,
+        "y": 395,
+        "wires": []
+    },
+    {
+        "id": "eco0174",
+        "type": "inject",
+        "z": "ecotab7",
+        "d": true,
+        "name": "DEMO simulator (every 30s)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "30",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 220,
+        "y": 485,
+        "wires": [
+            [
+                "eco0175"
+            ]
+        ]
+    },
+    {
+        "id": "eco0175",
+        "type": "function",
+        "z": "ecotab7",
+        "name": "simulate sensors",
+        "func": "const eco = global.get('eco');\nmsg.payload = 'sensors updated: ' + eco.simulate();\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 485,
+        "wires": [
+            [
+                "eco0176"
+            ]
+        ]
+    },
+    {
+        "id": "eco0176",
+        "type": "debug",
+        "z": "ecotab7",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "x": 700,
+        "y": 485,
+        "wires": []
     }
 ]

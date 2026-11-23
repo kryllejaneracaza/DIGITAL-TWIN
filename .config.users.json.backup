@@ -27,7 +27,7 @@
                                 "context",
                                 "dashboard"
                             ],
-                            "height": 103.03454599999999,
+                            "height": 104.47754599999999,
                             "hidden": false,
                             "active": "config"
                         },
@@ -35,8 +35,7 @@
                             "tabs": [
                                 "debug"
                             ],
-                            "hidden": false,
-                            "active": "debug"
+                            "hidden": true
                         }
                     },
                     "secondary": {
@@ -45,7 +44,7 @@
                             "tabs": [
                                 "explorer"
                             ],
-                            "height": 263.034546,
+                            "height": 264.488546,
                             "hidden": false,
                             "active": "explorer"
                         },
@@ -64,7 +63,8 @@
             },
             "dialog": {
                 "export": {
-                    "pretty": true
+                    "pretty": true,
+                    "json-view": false
                 }
             }
         },
