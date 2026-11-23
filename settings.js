@@ -77,7 +77,7 @@ module.exports = {
     type: "credentials",
     users: [{
         username: "admin",
-        password: "$2a$08$your-newly-generated-hash-here",
+        password: "$2y$08$smNbBtz0rJzY9oBumxEhXOqpyLeKSnUNny6WgGNcG.9XpJ4MxzBfu",
         permissions: "*"
     }]
 },
@@ -88,6 +88,7 @@ module.exports = {
      * for details of its contents.
      */
 
+    //.
     /** Option 1: static object */
     //https: {
     //  key: require("fs").readFileSync('privkey.pem'),
