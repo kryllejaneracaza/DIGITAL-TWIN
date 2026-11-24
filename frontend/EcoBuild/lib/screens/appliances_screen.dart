@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/appliance_model.dart';
 import '../services/appliance_service.dart';
 
+
 class AppliancesScreen extends StatefulWidget {
   const AppliancesScreen({super.key});
 

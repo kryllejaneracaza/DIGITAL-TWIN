@@ -270,7 +270,6 @@ class _RoomsScreenState extends State<RoomsScreen> {
               ),
               const SizedBox(height: 22),
 
-              // Room summary
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
@@ -319,7 +318,6 @@ class _RoomsScreenState extends State<RoomsScreen> {
 
               const SizedBox(height: 22),
 
-              // Search
               buildSearchBar(),
 
               const SizedBox(height: 22),

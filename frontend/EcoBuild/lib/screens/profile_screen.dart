@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -32,18 +31,12 @@ class ProfileScreen extends StatelessWidget {
           ),
           content: Text(
             message,
-            style: const TextStyle(
-              color: Colors.black54,
-              height: 1.5,
-            ),
+            style: const TextStyle(color: Colors.black54, height: 1.5),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text(
-                'CLOSE',
-                style: TextStyle(color: primaryGreen),
-              ),
+              child: const Text('CLOSE', style: TextStyle(color: primaryGreen)),
             ),
           ],
         );
@@ -102,19 +95,21 @@ class ProfileScreen extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
 
-    final email = user?.email ?? 'No User Logged In';
-    final displayName = user?.displayName ??
-        (user?.email?.split('@').first ?? 'EcoBuild User');
+    final email = user?['email']?.toString() ?? 'No User Logged In';
+
+    final displayName =
+        user?['name']?.toString() ??
+        (user?['email']?.toString().split('@').first ?? 'EcoBuild User');
+
+    final userId = user?['id']?.toString() ?? 'Not available';
+    final role = user?['role']?.toString() ?? 'Not available';
 
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
         title: const Text(
           'Profile & Settings',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: primaryGreen,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: primaryGreen),
         ),
         backgroundColor: backgroundColor,
         elevation: 0,
@@ -125,7 +120,6 @@ class ProfileScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // PROFILE CARD
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
@@ -165,10 +159,7 @@ class ProfileScreen extends StatelessWidget {
                     Text(
                       email,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
                     ),
                     const SizedBox(height: 12),
                     Container(
@@ -220,9 +211,10 @@ class ProfileScreen extends StatelessWidget {
                         title: 'Account Details',
                         icon: Icons.person_outline,
                         message:
+                            'Name: $displayName\n\n'
                             'Email: $email\n\n'
-                            'Email verified: '
-                            '${user?.emailVerified == true ? 'Yes' : 'No'}\n\n'
+                            'User ID: $userId\n\n'
+                            'Account role: $role\n\n'
                             'Account status: '
                             '${user != null ? 'Signed in' : 'Not signed in'}',
                       );
@@ -305,7 +297,6 @@ class ProfileScreen extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              // LOGOUT BUTTON
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -338,10 +329,7 @@ class ProfileScreen extends StatelessWidget {
                 child: Text(
                   'EcoBuild • Smarter Spaces, Smarter Living',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 11,
-                  ),
+                  style: TextStyle(color: Colors.grey, fontSize: 11),
                 ),
               ),
             ],
@@ -368,10 +356,7 @@ class ProfileScreen extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 5,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       leading: Container(
         width: 42,
         height: 42,
@@ -383,19 +368,10 @@ class ProfileScreen extends StatelessWidget {
       ),
       title: Text(
         title,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-        ),
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
       ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(fontSize: 11),
-      ),
-      trailing: const Icon(
-        Icons.chevron_right_rounded,
-        color: Colors.grey,
-      ),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 11)),
+      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
       onTap: onTap,
     );
   }

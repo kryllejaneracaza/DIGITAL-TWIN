@@ -131,7 +131,7 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
                       ? null
                       : () => Navigator.pop(dialogContext),
                   child: const Text(
-                    'CANCEL',
+                    'Cancel',
                     style: TextStyle(color: Colors.grey),
                   ),
                 ),
@@ -226,7 +226,7 @@ class _BuildingDetailsScreenState extends State<BuildingDetailsScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text('ADD ROOM'),
+                      : const Text('Add Room'),
                 ),
               ],
             );

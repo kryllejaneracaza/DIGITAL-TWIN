@@ -10,6 +10,7 @@ import 'providers/sensor_provider.dart';
 import 'providers/room_provider.dart';
 
 import 'services/api_service.dart';
+import 'services/auth_service.dart';
 
 import 'services/building_service.dart';
 import 'services/room_service.dart';
@@ -27,9 +28,20 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        Provider<ApiService>(
+          create: (_) => ApiService(),
+          dispose: (_, service) => service.dispose(),
+        ),
 
-        Provider<ApiService>(create: (_) => ApiService()),
+        Provider<AuthService>(
+          create: (context) =>
+              AuthService(apiService: context.read<ApiService>()),
+        ),
+
+        ChangeNotifierProvider<AuthProvider>(
+          create: (context) =>
+              AuthProvider(authService: context.read<AuthService>()),
+        ),
 
         Provider<BuildingService>(
           create: (context) =>
@@ -46,6 +58,7 @@ void main() async {
           create: (context) =>
               RoomService(apiService: context.read<ApiService>()),
         ),
+
         ChangeNotifierProvider<RoomProvider>(
           create: (context) =>
               RoomProvider(roomService: context.read<RoomService>()),

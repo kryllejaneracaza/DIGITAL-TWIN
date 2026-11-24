@@ -1,77 +1,71 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
+import '../services/auth_service.dart';
 
 class AuthProvider with ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final AuthService _authService;
 
-  User? _user;
+  Map<String, dynamic>? _user;
   bool _isLoading = true;
 
-  StreamSubscription<User?>? _authSubscription;
-
-  User? get user => _user;
+  Map<String, dynamic>? get user => _user;
 
   bool get isAuthenticated => _user != null;
 
   bool get isLoading => _isLoading;
 
-  AuthProvider() {
-    _authSubscription = _auth.authStateChanges().listen(
-      (User? user) {
-        _user = user;
-        _isLoading = false;
-        notifyListeners();
-      },
-      onError: (error) {
-        debugPrint('Authentication State Error: $error');
-        _isLoading = false;
-        notifyListeners();
-      },
-    );
+  AuthProvider({required this._authService}) {
+    _restoreSession();
+  }
+
+  Future<void> _restoreSession() async {
+    try {
+      _user = await _authService.getCurrentUser();
+    } catch (e) {
+      debugPrint('Session Restore Error: $e');
+      _user = null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<bool> login(String email, String password) async {
     try {
-      await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
+      _user = await _authService.login(email, password);
 
+      notifyListeners();
       return true;
-    } on FirebaseAuthException catch (e) {
-      debugPrint('Login Error: ${e.message}');
-      return false;
     } catch (e) {
       debugPrint('Login Error: $e');
       return false;
     }
   }
 
-  Future<String?> signUp(String email, String password) async {
+  Future<String?> signUp(String name, String email, String password) async {
     try {
-      await _auth.createUserWithEmailAndPassword(
-        email: email.trim(),
+      _user = await _authService.signUp(
+        name: name,
+        email: email,
         password: password,
       );
 
+      notifyListeners();
       return null;
-    } on FirebaseAuthException catch (e) {
-      debugPrint('Signup Error: ${e.message}');
-      return e.message;
     } catch (e) {
+      debugPrint('Signup Error: $e');
       return e.toString();
     }
   }
 
   Future<void> logout() async {
-    await _auth.signOut();
-  }
-
-  @override
-  void dispose() {
-    _authSubscription?.cancel();
-    super.dispose();
+    try {
+      await _authService.logout();
+    } catch (e) {
+      debugPrint('Logout Error: $e');
+    } finally {
+      _user = null;
+      notifyListeners();
+    }
   }
 }

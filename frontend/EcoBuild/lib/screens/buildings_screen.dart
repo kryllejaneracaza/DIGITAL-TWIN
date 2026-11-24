@@ -53,6 +53,8 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
   }
 
   void showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -184,7 +186,13 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
                                 : description,
                           );
 
-                          final success = await provider.addBuilding(building);
+                          bool success = false;
+
+                          try {
+                            success = await provider.addBuilding(building);
+                          } catch (e) {
+                            debugPrint('Add Building Error: $e');
+                          }
 
                           if (!mounted) return;
 
@@ -194,6 +202,7 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
 
                           if (success) {
                             showMessage('$name added successfully!');
+                            await refreshBuildings();
                           } else {
                             showMessage(
                               provider.errorMessage ??
@@ -212,7 +221,7 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
                           ),
                         )
                       : const Text(
-                          'ADD BUILDING',
+                          'Add Building',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                 ),
@@ -426,29 +435,6 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
     );
   }
 
-  Widget _buildAddBuildingButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 53,
-      child: ElevatedButton.icon(
-        onPressed: showAddBuildingDialog,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text(
-          'ADD NEW BUILDING',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primaryGreen,
-          foregroundColor: Colors.white,
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(13),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildLoadingView() {
     return const Center(child: CircularProgressIndicator(color: primaryGreen));
   }
@@ -535,6 +521,17 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: showAddBuildingDialog,
+        backgroundColor: primaryGreen,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_business_rounded),
+        label: const Text(
+          'ADD BUILDING',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+
       appBar: AppBar(
         backgroundColor: primaryGreen,
         foregroundColor: Colors.white,
@@ -552,6 +549,7 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
           const SizedBox(width: 5),
         ],
       ),
+
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -601,7 +599,9 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
                       TextField(
                         controller: searchController,
                         onChanged: (value) {
-                          setState(() => searchQuery = value);
+                          setState(() {
+                            searchQuery = value;
+                          });
                         },
                         decoration: InputDecoration(
                           hintText: 'Search buildings...',
@@ -614,7 +614,9 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
                               ? IconButton(
                                   onPressed: () {
                                     searchController.clear();
-                                    setState(() => searchQuery = '');
+                                    setState(() {
+                                      searchQuery = '';
+                                    });
                                   },
                                   icon: const Icon(Icons.close_rounded),
                                 )
@@ -668,20 +670,13 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
                       else
                         ...buildings.map(_buildBuildingCard),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 70),
 
-                      _buildAddBuildingButton(),
-
-                      const SizedBox(height: 20),
-
-                      Center(
+                      const Center(
                         child: Text(
                           'EcoBuild • Smart Building Monitoring System',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey.shade500,
-                          ),
+                          style: TextStyle(fontSize: 10, color: Colors.grey),
                         ),
                       ),
                     ],

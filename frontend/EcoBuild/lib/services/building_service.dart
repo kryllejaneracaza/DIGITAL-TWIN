@@ -1,3 +1,4 @@
+
 import '../models/building_model.dart';
 import 'api_service.dart';
 
@@ -7,7 +8,7 @@ class BuildingService {
   BuildingService({required this.apiService});
 
   Future<List<BuildingModel>> getBuildings({String? token}) async {
-    final response = await apiService.get('/buildings', token: token);
+    final response = await apiService.get('/api/buildings', token: token);
 
     final List<dynamic> items = _extractList(response);
 
@@ -18,7 +19,8 @@ class BuildingService {
   }
 
   Future<BuildingModel> getBuildingById(String id, {String? token}) async {
-    final response = await apiService.get('/buildings/$id', token: token);
+    final response =
+        await apiService.get('/api/buildings/$id', token: token);
 
     return BuildingModel.fromJson(_extractObject(response));
   }
@@ -28,7 +30,7 @@ class BuildingService {
     String? token,
   }) async {
     final response = await apiService.post(
-      '/buildings',
+      '/api/buildings',
       body: building.toJson(),
       token: token,
     );
@@ -42,7 +44,7 @@ class BuildingService {
     String? token,
   }) async {
     final response = await apiService.put(
-      '/buildings/$id',
+      '/api/buildings/$id',
       body: building.toJson(),
       token: token,
     );
@@ -51,7 +53,7 @@ class BuildingService {
   }
 
   Future<void> deleteBuilding(String id, {String? token}) async {
-    await apiService.delete('/buildings/$id', token: token);
+    await apiService.delete('/api/buildings/$id', token: token);
   }
 
   List<dynamic> _extractList(dynamic response) {

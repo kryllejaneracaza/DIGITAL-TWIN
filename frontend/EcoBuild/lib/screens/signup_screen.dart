@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -15,6 +14,7 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -33,6 +33,7 @@ class _SignupScreenState extends State<SignupScreen> {
     });
 
     final error = await context.read<AuthProvider>().signUp(
+      _nameController.text.trim(),
       _emailController.text.trim(),
       _passwordController.text,
     );
@@ -45,10 +46,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text(error), backgroundColor: Colors.red),
       );
       return;
     }
@@ -63,10 +61,7 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
           title: const Row(
             children: [
-              Icon(
-                Icons.check_circle,
-                color: primaryGreen,
-              ),
+              Icon(Icons.check_circle, color: primaryGreen),
               SizedBox(width: 10),
               Expanded(child: Text('Account Created!')),
             ],
@@ -94,15 +89,14 @@ class _SignupScreenState extends State<SignupScreen> {
     if (!mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) => const MainNavigationScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
       (route) => false,
     );
   }
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -142,13 +136,42 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 const Text(
                   'Create your account to get started.',
-                  style: TextStyle(
-                    color: Color(0xFF52745F),
-                    fontSize: 15,
-                  ),
+                  style: TextStyle(color: Color(0xFF52745F), fontSize: 15),
                 ),
 
                 const SizedBox(height: 35),
+
+                const Text(
+                  'Full Name',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: primaryGreen,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                TextFormField(
+                  controller: _nameController,
+                  keyboardType: TextInputType.name,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter your full name',
+                    prefixIcon: Icon(Icons.person_outline),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your full name.';
+                    }
+
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 20),
 
                 const Text(
                   'Email Address',
@@ -205,9 +228,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _hidePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
+                        _hidePassword ? Icons.visibility_off : Icons.visibility,
                       ),
                       onPressed: () {
                         setState(() {
@@ -224,8 +245,8 @@ class _SignupScreenState extends State<SignupScreen> {
                       return 'Please enter a password.';
                     }
 
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters.';
+                    if (value.length < 8) {
+                      return 'Password must be at least 8 characters.';
                     }
 
                     return null;
@@ -258,8 +279,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       onPressed: () {
                         setState(() {
-                          _hideConfirmPassword =
-                              !_hideConfirmPassword;
+                          _hideConfirmPassword = !_hideConfirmPassword;
                         });
                       },
                     ),
