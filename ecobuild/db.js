@@ -1,223 +1,243 @@
 // ============================================================
-//  EcoBuild database (SQLite) - tables follow your ERD
-//  Uses Node's built-in sqlite, so nothing to compile/install.
+//  EcoBuild database layer  -  Neon (PostgreSQL) via "pg"
+//  Keeps the same helpers the old SQLite version had, but async:
+//     await all(sql, ...params)   -> array of rows
+//     await get(sql, ...params)   -> first row or undefined
+//     await run(sql, ...params)   -> { changes }
+//     await ins(sql, ...params)   -> id from "... RETURNING some_ID"
+//  Use ? placeholders; they are converted to $1, $2 ... automatically.
 // ============================================================
-const fs = require('fs');
-const path = require('path');
-const { DatabaseSync } = require('node:sqlite');
+const { Pool, types } = require('pg');
 const cfg = require('./config');
 
-fs.mkdirSync(path.dirname(cfg.DB_FILE), { recursive: true });
-const db = new DatabaseSync(cfg.DB_FILE);
-db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+// Return numbers (not strings) for COUNT()/SUM()/AVG(), and timestamps as
+// plain 'YYYY-MM-DD HH:MM:SS' text, exactly like the old SQLite version did.
+types.setTypeParser(20, (v) => parseInt(v, 10));   // bigint (COUNT, SUM)
+types.setTypeParser(1700, (v) => parseFloat(v));   // numeric (AVG, ROUND)
+types.setTypeParser(1114, (v) => v);               // timestamp without time zone
 
-db.exec(`
-CREATE TABLE IF NOT EXISTS Building (
-  building_ID   INTEGER PRIMARY KEY AUTOINCREMENT,
-  building_name TEXT NOT NULL,
-  location      TEXT
-);
+// Current UTC time as a "timestamp without time zone"
+const NOW = "(now() AT TIME ZONE 'utc')";
 
-CREATE TABLE IF NOT EXISTS Room (
-  room_ID         INTEGER PRIMARY KEY AUTOINCREMENT,
-  building_ID     INTEGER NOT NULL REFERENCES Building(building_ID) ON DELETE CASCADE,
-  room_name       TEXT NOT NULL,
-  floor_plan_data TEXT,
-  plan_width      REAL,
-  plan_height     REAL
-);
+let client = null;
 
-CREATE TABLE IF NOT EXISTS Controllers (
-  controllers_ID   INTEGER PRIMARY KEY AUTOINCREMENT,
-  room_ID          INTEGER NOT NULL REFERENCES Room(room_ID) ON DELETE CASCADE,
-  controllers_name TEXT NOT NULL,
-  mac_address      TEXT UNIQUE,
-  ip_address       TEXT,
-  status           TEXT DEFAULT 'offline',
-  wifi             INTEGER,
-  last_seen        TEXT
-);
+function getClient() {
+  if (client) return client;
+  if (!cfg.DATABASE_URL) {
+    throw new Error('DATABASE_URL is not set. Create ecobuild/.env with your Neon connection string.');
+  }
+  const pool = new Pool({
+    connectionString: cfg.DATABASE_URL,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 20000, // Neon may need a moment to wake up
+    ssl: /sslmode=/i.test(cfg.DATABASE_URL) ? undefined : { rejectUnauthorized: true }
+  });
+  pool.on('error', (e) => console.error('[EcoBuild] database pool error:', e.message));
+  client = pool;
+  return client;
+}
 
-CREATE TABLE IF NOT EXISTS Sensors (
-  sensor_ID     INTEGER PRIMARY KEY AUTOINCREMENT,
-  controller_ID INTEGER NOT NULL REFERENCES Controllers(controllers_ID) ON DELETE CASCADE,
-  sensor_type   TEXT NOT NULL,
-  gpio_pin      INTEGER,
-  pos_x         REAL,
-  pos_y         REAL
-);
+// Convert ? placeholders to $1, $2 ... (ignores ? inside 'quoted text')
+function toPg(sql) {
+  let n = 0, out = '', inQuote = false;
+  for (let i = 0; i < sql.length; i++) {
+    const ch = sql[i];
+    if (ch === "'") { inQuote = !inQuote; out += ch; }
+    else if (ch === '?' && !inQuote) out += '$' + (++n);
+    else out += ch;
+  }
+  return out;
+}
 
-CREATE TABLE IF NOT EXISTS Sensor_Readings (
-  readings_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-  sensor_ID   INTEGER NOT NULL REFERENCES Sensors(sensor_ID) ON DELETE CASCADE,
-  temperature REAL,
-  humidity    REAL,
-  occupied    INTEGER,
-  recorded_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_readings_sensor_time ON Sensor_Readings(sensor_ID, recorded_at);
+// Postgres lower-cases column names; the app expects room_ID, users_ID ... so restore them.
+function fixRow(row) {
+  const o = {};
+  for (const k of Object.keys(row)) o[k.replace(/_id$/, '_ID')] = row[k];
+  return o;
+}
 
-CREATE TABLE IF NOT EXISTS Detection (
-  detection_ID     INTEGER PRIMARY KEY AUTOINCREMENT,
-  reading_ID       INTEGER REFERENCES Sensor_Readings(readings_ID) ON DELETE SET NULL,
-  room_ID          INTEGER NOT NULL REFERENCES Room(room_ID) ON DELETE CASCADE,
-  detection_type   TEXT,
-  detection_result TEXT,
-  detected_at      TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS Appliances (
-  appliances_ID   INTEGER PRIMARY KEY AUTOINCREMENT,
-  room_ID         INTEGER NOT NULL REFERENCES Room(room_ID) ON DELETE CASCADE,
-  controllers_ID  INTEGER REFERENCES Controllers(controllers_ID) ON DELETE SET NULL,
-  appliances_name TEXT NOT NULL,
-  appliances_type TEXT,
-  gpio_pin        INTEGER,
-  pos_x           REAL,
-  pos_y           REAL
-);
-
-CREATE TABLE IF NOT EXISTS Appliance_States (
-  states_ID      INTEGER PRIMARY KEY AUTOINCREMENT,
-  appliances_ID  INTEGER NOT NULL UNIQUE REFERENCES Appliances(appliances_ID) ON DELETE CASCADE,
-  reported_state TEXT DEFAULT 'off',
-  desired_state  TEXT DEFAULT 'off',
-  in_sync        INTEGER DEFAULT 1,
-  updated_at     TEXT DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS IR_Command_Codes (
-  code_ID       INTEGER PRIMARY KEY AUTOINCREMENT,
-  appliances_ID INTEGER NOT NULL REFERENCES Appliances(appliances_ID) ON DELETE CASCADE,
-  action        TEXT NOT NULL,
-  protocol      TEXT,
-  raw_code      TEXT
-);
-
-CREATE TABLE IF NOT EXISTS Automation_Rules (
-  rules_ID         INTEGER PRIMARY KEY AUTOINCREMENT,
-  room_ID          INTEGER NOT NULL REFERENCES Room(room_ID) ON DELETE CASCADE,
-  appliances_ID    INTEGER NOT NULL REFERENCES Appliances(appliances_ID) ON DELETE CASCADE,
-  rule_name        TEXT,
-  trigger_type     TEXT NOT NULL,      -- temperature | humidity | vacancy
-  threshold        REAL,
-  duration_minutes INTEGER,
-  action           TEXT NOT NULL,      -- on | off
-  target_value     REAL,
-  is_active        INTEGER NOT NULL DEFAULT 1,
-  created_at       TEXT DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS Users (
-  users_ID            INTEGER PRIMARY KEY AUTOINCREMENT,
-  users_name          TEXT NOT NULL,
-  users_email         TEXT NOT NULL UNIQUE,
-  users_password_hash TEXT NOT NULL,
-  role                TEXT NOT NULL DEFAULT 'user',   -- admin | user
-  created_at          TEXT DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS User_Room_Access (
-  users_ID INTEGER NOT NULL REFERENCES Users(users_ID) ON DELETE CASCADE,
-  room_ID  INTEGER NOT NULL REFERENCES Room(room_ID) ON DELETE CASCADE,
-  PRIMARY KEY (users_ID, room_ID)
-);
-
-CREATE TABLE IF NOT EXISTS Login_History (
-  login_history_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_ID          INTEGER REFERENCES Users(users_ID) ON DELETE CASCADE,
-  login_time       TEXT DEFAULT (datetime('now')),
-  login_status     TEXT,
-  raw_code         TEXT
-);
-
-CREATE TABLE IF NOT EXISTS Commands (
-  command_ID    INTEGER PRIMARY KEY AUTOINCREMENT,
-  appliances_ID INTEGER NOT NULL REFERENCES Appliances(appliances_ID) ON DELETE CASCADE,
-  user_ID       INTEGER REFERENCES Users(users_ID) ON DELETE SET NULL,
-  rule_ID       INTEGER REFERENCES Automation_Rules(rules_ID) ON DELETE SET NULL,
-  source        TEXT,                -- user | rule
-  action        TEXT NOT NULL,       -- on | off
-  status        TEXT NOT NULL DEFAULT 'pending',  -- pending | sent | confirmed | failed
-  sent_at       TEXT,
-  confirmed_at  TEXT,
-  response_ms   INTEGER,
-  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS Notifications (
-  notification_ID      INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_ID              INTEGER REFERENCES Users(users_ID) ON DELETE CASCADE,  -- NULL = everyone
-  room_ID              INTEGER REFERENCES Room(room_ID) ON DELETE CASCADE,
-  detection_ID         INTEGER REFERENCES Detection(detection_ID) ON DELETE SET NULL,
-  command_ID           INTEGER REFERENCES Commands(command_ID) ON DELETE SET NULL,
-  notification_message TEXT NOT NULL,
-  notification_is_read INTEGER NOT NULL DEFAULT 0,
-  notification_sent_at TEXT NOT NULL DEFAULT (datetime('now')),
-  delivered_at         TEXT,
-  severity             TEXT NOT NULL DEFAULT 'info'   -- info | warning | danger
-);
-`);
-
-const all = (sql, ...p) => db.prepare(sql).all(...p);
-const get = (sql, ...p) => db.prepare(sql).get(...p);
-const run = (sql, ...p) => db.prepare(sql).run(...p);
-
-// ---------------- demo data (only when the database is empty) ----------------
-function seed() {
-  if (!cfg.SEED_DEMO_DATA) return;
-  if (get('SELECT COUNT(*) AS n FROM Building').n > 0) return;
-
-  const mkBuilding = (name, loc) => Number(run('INSERT INTO Building(building_name, location) VALUES (?,?)', name, loc).lastInsertRowid);
-  const mkRoom = (b, name) => Number(run('INSERT INTO Room(building_ID, room_name, plan_width, plan_height) VALUES (?,?,?,?)', b, name, 800, 600).lastInsertRowid);
-  const mkCtrl = (room, name, mac) => Number(run("INSERT INTO Controllers(room_ID, controllers_name, mac_address) VALUES (?,?,?)", room, name, mac).lastInsertRowid);
-  const mkSensor = (c, type, pin) => Number(run('INSERT INTO Sensors(controller_ID, sensor_type, gpio_pin, pos_x, pos_y) VALUES (?,?,?,?,?)', c, type, pin, 100, 100).lastInsertRowid);
-  const mkApp = (room, c, name, type, pin) => {
-    const id = Number(run('INSERT INTO Appliances(room_ID, controllers_ID, appliances_name, appliances_type, gpio_pin, pos_x, pos_y) VALUES (?,?,?,?,?,?,?)', room, c, name, type, pin, 200, 200).lastInsertRowid);
-    run('INSERT INTO Appliance_States(appliances_ID) VALUES (?)', id);
-    return id;
+async function exec(sql, params) {
+  const r = await getClient().query(toPg(sql), params);
+  return {
+    rows: (r.rows || []).map(fixRow),
+    rowCount: r.rowCount != null ? r.rowCount : (r.affectedRows || 0)
   };
+}
 
-  const main = mkBuilding('Main Building', 'Don Bosco Technical College - Cebu');
-  const mech = mkBuilding('Mech Lab', 'Don Bosco Technical College - Cebu');
-  const comp = mkBuilding('Comp Lab', 'Don Bosco Technical College - Cebu');
+const all = async (sql, ...params) => (await exec(sql, params)).rows;
+const get = async (sql, ...params) => (await exec(sql, params)).rows[0];
+const run = async (sql, ...params) => ({ changes: (await exec(sql, params)).rowCount });
+const ins = async (sql, ...params) => {
+  const first = (await exec(sql, params)).rows[0];
+  return first ? Number(Object.values(first)[0]) : null;
+};
 
+// ---------------- schema ----------------
+const T = 'TIMESTAMP(0)';
+const TS_NOW = `${T} DEFAULT ${NOW}`;
+const SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS Users (
+    users_ID INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    users_name TEXT NOT NULL,
+    users_email TEXT NOT NULL UNIQUE,
+    users_password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user',
+    created_at ${TS_NOW})`,
+  `CREATE TABLE IF NOT EXISTS Building (
+    building_ID INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    building_name TEXT NOT NULL,
+    location TEXT)`,
+  `CREATE TABLE IF NOT EXISTS Room (
+    room_ID INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    building_ID INTEGER NOT NULL REFERENCES Building(building_ID) ON DELETE CASCADE,
+    room_name TEXT NOT NULL,
+    floor_plan_data TEXT,
+    plan_width DOUBLE PRECISION,
+    plan_height DOUBLE PRECISION)`,
+  `CREATE TABLE IF NOT EXISTS Controllers (
+    controllers_ID INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    room_ID INTEGER NOT NULL REFERENCES Room(room_ID) ON DELETE CASCADE,
+    controllers_name TEXT NOT NULL,
+    mac_address TEXT UNIQUE,
+    ip_address TEXT,
+    status TEXT DEFAULT 'offline',
+    wifi INTEGER,
+    last_seen ${T})`,
+  `CREATE TABLE IF NOT EXISTS Sensors (
+    sensor_ID INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    controller_ID INTEGER NOT NULL REFERENCES Controllers(controllers_ID) ON DELETE CASCADE,
+    sensor_type TEXT NOT NULL,
+    gpio_pin INTEGER,
+    pos_x DOUBLE PRECISION,
+    pos_y DOUBLE PRECISION)`,
+  `CREATE TABLE IF NOT EXISTS Sensor_Readings (
+    readings_ID INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    sensor_ID INTEGER NOT NULL REFERENCES Sensors(sensor_ID) ON DELETE CASCADE,
+    temperature DOUBLE PRECISION,
+    humidity DOUBLE PRECISION,
+    occupied INTEGER,
+    recorded_at ${T} NOT NULL DEFAULT ${NOW})`,
+  `CREATE TABLE IF NOT EXISTS Appliances (
+    appliances_ID INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    room_ID INTEGER NOT NULL REFERENCES Room(room_ID) ON DELETE CASCADE,
+    controllers_ID INTEGER REFERENCES Controllers(controllers_ID) ON DELETE SET NULL,
+    appliances_name TEXT NOT NULL,
+    appliances_type TEXT,
+    gpio_pin INTEGER,
+    pos_x DOUBLE PRECISION,
+    pos_y DOUBLE PRECISION)`,
+  `CREATE TABLE IF NOT EXISTS Appliance_States (
+    states_ID INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    appliances_ID INTEGER NOT NULL UNIQUE REFERENCES Appliances(appliances_ID) ON DELETE CASCADE,
+    reported_state TEXT DEFAULT 'off',
+    desired_state TEXT DEFAULT 'off',
+    in_sync INTEGER DEFAULT 1,
+    updated_at ${TS_NOW})`,
+  `CREATE TABLE IF NOT EXISTS Automation_Rules (
+    rules_ID INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    room_ID INTEGER NOT NULL REFERENCES Room(room_ID) ON DELETE CASCADE,
+    appliances_ID INTEGER NOT NULL REFERENCES Appliances(appliances_ID) ON DELETE CASCADE,
+    rule_name TEXT,
+    trigger_type TEXT NOT NULL,
+    threshold DOUBLE PRECISION,
+    duration_minutes INTEGER,
+    action TEXT NOT NULL,
+    target_value DOUBLE PRECISION,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at ${TS_NOW})`,
+  `CREATE TABLE IF NOT EXISTS Commands (
+    command_ID INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    appliances_ID INTEGER NOT NULL REFERENCES Appliances(appliances_ID) ON DELETE CASCADE,
+    user_ID INTEGER REFERENCES Users(users_ID) ON DELETE SET NULL,
+    rule_ID INTEGER REFERENCES Automation_Rules(rules_ID) ON DELETE SET NULL,
+    source TEXT,
+    action TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    sent_at ${T},
+    confirmed_at ${T},
+    response_ms INTEGER,
+    created_at ${T} NOT NULL DEFAULT ${NOW})`,
+  `CREATE TABLE IF NOT EXISTS Detection (
+    detection_ID INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    reading_ID INTEGER REFERENCES Sensor_Readings(readings_ID) ON DELETE SET NULL,
+    room_ID INTEGER NOT NULL REFERENCES Room(room_ID) ON DELETE CASCADE,
+    detection_type TEXT,
+    detection_result TEXT,
+    detected_at ${T} NOT NULL DEFAULT ${NOW})`,
+  `CREATE TABLE IF NOT EXISTS Notifications (
+    notification_ID INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    user_ID INTEGER REFERENCES Users(users_ID) ON DELETE CASCADE,
+    room_ID INTEGER REFERENCES Room(room_ID) ON DELETE CASCADE,
+    detection_ID INTEGER REFERENCES Detection(detection_ID) ON DELETE SET NULL,
+    command_ID INTEGER REFERENCES Commands(command_ID) ON DELETE SET NULL,
+    notification_message TEXT NOT NULL,
+    notification_is_read INTEGER NOT NULL DEFAULT 0,
+    notification_sent_at ${T} NOT NULL DEFAULT ${NOW},
+    delivered_at ${T},
+    severity TEXT NOT NULL DEFAULT 'info')`,
+  `CREATE TABLE IF NOT EXISTS IR_Command_Codes (
+    code_ID INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    appliances_ID INTEGER NOT NULL REFERENCES Appliances(appliances_ID) ON DELETE CASCADE,
+    action TEXT NOT NULL,
+    protocol TEXT,
+    raw_code TEXT)`,
+  `CREATE TABLE IF NOT EXISTS User_Room_Access (
+    users_ID INTEGER NOT NULL REFERENCES Users(users_ID) ON DELETE CASCADE,
+    room_ID INTEGER NOT NULL REFERENCES Room(room_ID) ON DELETE CASCADE,
+    PRIMARY KEY (users_ID, room_ID))`,
+  'CREATE INDEX IF NOT EXISTS idx_readings_sensor_time ON Sensor_Readings (sensor_ID, recorded_at)',
+  'CREATE INDEX IF NOT EXISTS idx_notifications_sent ON Notifications (notification_sent_at)'
+];
+
+// Optional sample data (only when SEED_DEMO_DATA is true AND the database is empty)
+async function seedIfEmpty() {
+  if ((await get('SELECT COUNT(*) AS n FROM Building')).n > 0) return;
+  console.log('[EcoBuild] Database is empty - adding demo data');
+  const loc = 'Don Bosco Technical College - Cebu';
+  const bId = {};
+  for (const name of ['Main Building', 'Mech Lab', 'Comp Lab']) {
+    bId[name] = await ins('INSERT INTO Building(building_name, location) VALUES (?,?) RETURNING building_ID', name, loc);
+  }
   const rooms = [
-    [main, 'Room 101'], [main, 'Room 102'], [main, 'Room 103'],
-    [mech, 'Mech Room 1'], [mech, 'Mech Room 2'],
-    [comp, 'Comp Room 1'], [comp, 'Comp Room 2']
+    ['Main Building', 'Room 101'], ['Main Building', 'Room 102'], ['Main Building', 'Room 103'],
+    ['Mech Lab', 'Mech Room 1'], ['Mech Lab', 'Mech Room 2'],
+    ['Comp Lab', 'Comp Room 1'], ['Comp Lab', 'Comp Room 2']
   ];
   let i = 0;
-  const dhtIds = [];
-  const roomIds = [];
   for (const [b, name] of rooms) {
     i++;
-    const r = mkRoom(b, name);
-    roomIds.push(r);
-    const c = mkCtrl(r, 'ESP32-' + name, 'AA:BB:CC:DD:EE:' + String(i).padStart(2, '0'));
-    dhtIds.push(mkSensor(c, 'DHT22', 4));
-    mkSensor(c, 'PIR', 5);
-    const light = mkApp(r, c, 'Smart Light', 'light', 16);
-    const ac = mkApp(r, c, 'Air Conditioner', 'aircon', 17);
-    if (name === 'Comp Room 1') mkApp(r, c, 'Fan', 'fan', 18);
-    if (name === 'Room 101') mkApp(r, c, 'Kiosk', 'kiosk', 19);
-    run("INSERT INTO Automation_Rules(room_ID, appliances_ID, rule_name, trigger_type, duration_minutes, action) VALUES (?,?,?,?,?,?)",
-      r, light, 'Turn off lights', 'vacancy', 10, 'off');
-    run("INSERT INTO Automation_Rules(room_ID, appliances_ID, rule_name, trigger_type, threshold, action, target_value) VALUES (?,?,?,?,?,?,?)",
-      r, ac, 'Air Conditioner', 'temperature', 28, 'on', 24);
-  }
-
-  // 12 hours of fake history so the charts are not empty
-  for (const sid of dhtIds) {
-    for (let h = 12; h >= 1; h--) {
-      const t = (26 + Math.sin(h / 2) * 2 + Math.random()).toFixed(1);
-      const hum = (58 + Math.random() * 6).toFixed(1);
-      run("INSERT INTO Sensor_Readings(sensor_ID, temperature, humidity, recorded_at) VALUES (?,?,?, datetime('now', ?))",
-        sid, Number(t), Number(hum), `-${h} hours`);
+    const room = await ins('INSERT INTO Room(building_ID, room_name, plan_width, plan_height) VALUES (?,?,800,600) RETURNING room_ID', bId[b], name);
+    const ctl = await ins('INSERT INTO Controllers(room_ID, controllers_name, mac_address) VALUES (?,?,?) RETURNING controllers_ID',
+      room, 'ESP32-' + name, 'AA:BB:CC:DD:EE:0' + i);
+    await run('INSERT INTO Sensors(controller_ID, sensor_type, gpio_pin, pos_x, pos_y) VALUES (?,?,?,100,100)', ctl, 'DHT22', 4);
+    await run('INSERT INTO Sensors(controller_ID, sensor_type, gpio_pin, pos_x, pos_y) VALUES (?,?,?,100,100)', ctl, 'PIR', 5);
+    const items = [['Smart Light', 'light', 16], ['Air Conditioner', 'aircon', 17]];
+    if (name === 'Room 101') items.push(['Kiosk', 'kiosk', 19]);
+    if (name === 'Comp Room 1') items.push(['Fan', 'fan', 18]);
+    let light = null, ac = null;
+    for (const [an, at, pin] of items) {
+      const id = await ins(
+        'INSERT INTO Appliances(room_ID, controllers_ID, appliances_name, appliances_type, gpio_pin, pos_x, pos_y) VALUES (?,?,?,?,?,200,200) RETURNING appliances_ID',
+        room, ctl, an, at, pin);
+      await run('INSERT INTO Appliance_States(appliances_ID) VALUES (?)', id);
+      if (at === 'light') light = id;
+      if (at === 'aircon') ac = id;
     }
+    await run(`INSERT INTO Automation_Rules(room_ID, appliances_ID, rule_name, trigger_type, duration_minutes, action) VALUES (?,?,?,?,?,?)`,
+      room, light, 'Turn off lights', 'vacancy', 10, 'off');
+    await run(`INSERT INTO Automation_Rules(room_ID, appliances_ID, rule_name, trigger_type, threshold, action, target_value) VALUES (?,?,?,?,?,?,?)`,
+      room, ac, 'Air Conditioner', 'temperature', 28, 'on', 24);
   }
-  console.log('[EcoBuild] demo data inserted');
 }
-seed();
 
-module.exports = { db, all, get, run };
+async function init() {
+  const c = getClient();
+  for (const stmt of SCHEMA) await c.query(stmt);
+  if (cfg.SEED_DEMO_DATA) await seedIfEmpty();
+}
+
+// For tests / scripts: use any object that has query(text, params)
+function _useClient(c) { client = c; }
+
+module.exports = { NOW, all, get, run, ins, init, toPg, _useClient };
