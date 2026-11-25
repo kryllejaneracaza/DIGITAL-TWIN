@@ -5,7 +5,6 @@ import 'buildings_screen.dart';
 import 'rooms_screen.dart';
 import 'sensors_screen.dart';
 import 'appliances_screen.dart';
-import 'profile_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -26,7 +25,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     RoomsScreen(),
     SensorsScreen(),
     AppliancesScreen(),
-    ProfileScreen(),
   ];
 
   @override
@@ -90,11 +88,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               icon: Icon(Icons.electrical_services_outlined),
               selectedIcon: Icon(Icons.electrical_services_rounded),
               label: 'Appliances',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded),
-              label: 'Profile',
             ),
           ],
         ),

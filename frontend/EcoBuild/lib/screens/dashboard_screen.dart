@@ -96,51 +96,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String subtitle,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(12),
+              color: primaryGreen.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(11),
             ),
-            child: Icon(icon, color: color, size: 23),
+            child: Icon(icon, color: primaryGreen, size: 21),
           ),
-          const SizedBox(height: 14),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 25,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF183B2B),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF183B2B),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF183B2B),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF183B2B),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -391,36 +402,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisCount: 2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.25,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 1.75,
               children: [
                 _buildStatCard(
                   title: 'Buildings',
                   value: '${buildings.buildings.length}',
-                  icon: Icons.business,
-                  color: const Color(0xFF125838),
+                  icon: Icons.business_rounded,
+                  color: primaryGreen,
                   subtitle: 'Registered buildings',
                 ),
                 _buildStatCard(
                   title: 'Rooms',
                   value: '${rooms.rooms.length}',
-                  icon: Icons.meeting_room,
-                  color: Colors.blue,
+                  icon: Icons.meeting_room_rounded,
+                  color: primaryGreen,
                   subtitle: 'Registered rooms',
                 ),
                 _buildStatCard(
                   title: 'Sensors',
                   value: '${sensors.sensors.length}',
-                  icon: Icons.sensors,
-                  color: Colors.orange,
+                  icon: Icons.sensors_rounded,
+                  color: primaryGreen,
                   subtitle: 'Registered sensors',
                 ),
                 _buildStatCard(
                   title: 'Active Appliances',
                   value: _appliances == null ? '--' : '$_activeAppliances',
-                  icon: Icons.electrical_services,
-                  color: Colors.purple,
+                  icon: Icons.electrical_services_rounded,
+                  color: primaryGreen,
                   subtitle: 'Currently switched ON',
                 ),
               ],

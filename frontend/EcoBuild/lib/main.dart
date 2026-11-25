@@ -4,21 +4,17 @@ import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
 
-import 'providers/auth_provider.dart';
 import 'providers/building_provider.dart';
 import 'providers/sensor_provider.dart';
 import 'providers/room_provider.dart';
 
 import 'services/api_service.dart';
-import 'services/auth_service.dart';
-
 import 'services/building_service.dart';
 import 'services/room_service.dart';
 import 'services/sensor_service.dart';
 import 'services/appliance_service.dart';
 
 import 'screens/intro_screen.dart';
-import 'screens/main_navigation_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,16 +27,6 @@ void main() async {
         Provider<ApiService>(
           create: (_) => ApiService(),
           dispose: (_, service) => service.dispose(),
-        ),
-
-        Provider<AuthService>(
-          create: (context) =>
-              AuthService(apiService: context.read<ApiService>()),
-        ),
-
-        ChangeNotifierProvider<AuthProvider>(
-          create: (context) =>
-              AuthProvider(authService: context.read<AuthService>()),
         ),
 
         Provider<BuildingService>(
@@ -98,25 +84,7 @@ class EcoBuildApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFEAF8EF),
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF125838)),
       ),
-
-      home: Consumer<AuthProvider>(
-        builder: (context, auth, child) {
-          if (auth.isLoading) {
-            return const Scaffold(
-              backgroundColor: Color(0xFFEAF8EF),
-              body: Center(
-                child: CircularProgressIndicator(color: Color(0xFF125838)),
-              ),
-            );
-          }
-
-          if (auth.isAuthenticated) {
-            return const MainNavigationScreen();
-          }
-
-          return const IntroScreen();
-        },
-      ),
+      home: const IntroScreen(),
     );
   }
 }

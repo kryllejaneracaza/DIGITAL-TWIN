@@ -466,7 +466,7 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
             ElevatedButton.icon(
               onPressed: refreshBuildings,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('TRY AGAIN'),
+              label: const Text('Try Again'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryGreen,
                 foregroundColor: Colors.white,
@@ -525,7 +525,7 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
         onPressed: showAddBuildingDialog,
         backgroundColor: primaryGreen,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_business_rounded),
+        icon: const Icon(Icons.add_rounded),
         label: const Text(
           'ADD BUILDING',
           style: TextStyle(fontWeight: FontWeight.bold),

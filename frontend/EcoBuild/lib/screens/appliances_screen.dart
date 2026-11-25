@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../models/appliance_model.dart';
 import '../services/appliance_service.dart';
 
-
 class AppliancesScreen extends StatefulWidget {
   const AppliancesScreen({super.key});
 
@@ -411,6 +410,10 @@ class _AppliancesScreenState extends State<AppliancesScreen> {
                 onPressed: _loadAppliances,
                 icon: const Icon(Icons.refresh),
                 label: const Text('Try Again'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF125838),
+                  foregroundColor: Colors.white,
+                ),
               ),
             ],
           ),
