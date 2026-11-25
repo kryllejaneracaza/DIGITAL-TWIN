@@ -94,7 +94,7 @@
                     "v": 4,
                     "tabs": [],
                     "primary": {
-                        "width": 0,
+                        "width": 237,
                         "top": {
                             "tabs": [
                                 "info",
@@ -103,15 +103,15 @@
                                 "context",
                                 "dashboard"
                             ],
-                            "height": 302.909546,
-                            "hidden": true,
-                            "active": "info"
+                            "height": 306.359,
+                            "hidden": false,
+                            "active": "config"
                         },
                         "bottom": {
                             "tabs": [
                                 "debug"
                             ],
-                            "hidden": true,
+                            "hidden": false,
                             "active": "debug"
                         }
                     },
@@ -121,7 +121,7 @@
                             "tabs": [
                                 "explorer"
                             ],
-                            "height": 302.909546,
+                            "height": 309.234,
                             "hidden": false,
                             "active": "explorer"
                         },
@@ -137,8 +137,14 @@
             },
             "tours": {
                 "welcome": "5.0.9"
+            },
+            "dialog": {
+                "export": {
+                    "pretty": true,
+                    "json-view": true
+                }
             }
         },
-        "menu-menu-item-right-sidebar": false
+        "menu-menu-item-right-sidebar": true
     }
 }
