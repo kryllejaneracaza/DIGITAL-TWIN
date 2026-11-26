@@ -255,6 +255,26 @@ async function simulate() {
   return n;
 }
 
+// ---------------- built-in simulator timer (state is shared with GET/PUT /api/simulation) ----------------
+let simulationEnabled = cfg.SIMULATION_AUTOSTART !== false;
+let simBusy = false;
+let lastSimError = '';
+const simTimer = setInterval(async () => {
+  if (!simulationEnabled || simBusy) return;
+  simBusy = true;
+  try {
+    await ensureReady();
+    await simulate();
+    lastSimError = '';
+  } catch (e) {
+    if (e.message !== lastSimError) console.error('[EcoBuild] simulation tick failed:', e.message);
+    lastSimError = e.message;
+  } finally {
+    simBusy = false;
+  }
+}, Math.max(5, Number(cfg.SIMULATION_INTERVAL_SECONDS) || 15) * 1000);
+if (simTimer.unref) simTimer.unref();
+
 // ============================================================
 //  ROUTES   (auth: none | user | admin | device)
 //  user/admin routes need no login any more - the default admin is used.
@@ -285,6 +305,13 @@ const routes = {
     }
   },
   'auth.logout': { auth: 'none', run: () => raw(200, { success: true, message: 'Logged out' }) },
+
+  // ---------- demo simulator switch (same shape the old flow returned: { enabled }) ----------
+  'simulation.get': { auth: 'user', run: () => raw(200, { enabled: simulationEnabled }) },
+  'simulation.set': {
+    auth: 'user',
+    run: ({ body }) => { simulationEnabled = !!body.enabled; return raw(200, { enabled: simulationEnabled }); }
+  },
 
   // ---------- dashboard ----------
   'dashboard': {
