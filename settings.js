@@ -544,8 +544,10 @@ module.exports = {
      * will allow the `os` module to be accessed in a Function node using:
      *    global.get("os")
      */
-       functionGlobalContext: {
-        eco: require(__dirname + '/ecobuild/index.js')
+            functionGlobalContext: {
+        eco: require(__dirname + '/ecobuild/index.js'),
+        pg: require('pg'),
+        pgCloudflare: require('pg-cloudflare')
     },
 
     httpNodeCors: {

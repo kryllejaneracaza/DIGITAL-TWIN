@@ -50,7 +50,7 @@ module.exports = {
   // It keeps sensor readings and "last seen" times fresh when no real ESP32 is connected.
   // The app can switch it on/off with GET/PUT /api/simulation.
   // NOTE: it writes to Neon every interval, which keeps the Neon compute awake.
-  SIMULATION_AUTOSTART: true,
+  SIMULATION_AUTOSTART: false,
   SIMULATION_INTERVAL_SECONDS: 15,
 
   // true = if the database is EMPTY on start, fill it with sample buildings, rooms, sensors...

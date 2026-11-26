@@ -94,7 +94,7 @@
                     "v": 4,
                     "tabs": [],
                     "primary": {
-                        "width": 237,
+                        "width": 300,
                         "top": {
                             "tabs": [
                                 "info",
@@ -103,9 +103,8 @@
                                 "context",
                                 "dashboard"
                             ],
-                            "height": 306.359,
-                            "hidden": false,
-                            "active": "config"
+                            "height": 309.249546,
+                            "hidden": true
                         },
                         "bottom": {
                             "tabs": [
@@ -121,7 +120,7 @@
                             "tabs": [
                                 "explorer"
                             ],
-                            "height": 309.234,
+                            "height": 310.68154599999997,
                             "hidden": false,
                             "active": "explorer"
                         },
@@ -129,8 +128,7 @@
                             "tabs": [
                                 "palette"
                             ],
-                            "hidden": false,
-                            "active": "palette"
+                            "hidden": true
                         }
                     }
                 }
@@ -145,6 +143,7 @@
                 }
             }
         },
-        "menu-menu-item-right-sidebar": true
+        "menu-menu-item-right-sidebar": true,
+        "menu-menu-item-left-sidebar": true
     }
 }
