@@ -7,8 +7,25 @@
 //     await ins(sql, ...params)   -> id from "... RETURNING some_ID"
 //  Use ? placeholders; they are converted to $1, $2 ... automatically.
 // ============================================================
-const { Pool, types } = require('pg');
 const cfg = require('./config');
+
+// Two ways to reach Neon:
+//   DB_DRIVER=pg         normal connection on port 5432 (default)
+//   DB_DRIVER=websocket  same database, tunnelled over port 443 - use this when
+//                        your Wi-Fi / school network blocks port 5432
+const useWebSocket = String(cfg.DB_DRIVER || 'pg').toLowerCase() === 'websocket';
+let driver;
+if (useWebSocket) {
+  driver = require('@neondatabase/serverless');
+  try {
+    driver.neonConfig.webSocketConstructor = globalThis.WebSocket || require('ws');
+  } catch (e) {
+    throw new Error('No WebSocket support found. Run:  npm install ws   (in C:\\Users\\krylle\\.node-red)');
+  }
+} else {
+  driver = require('pg');
+}
+const { Pool, types } = driver;
 
 // Return numbers (not strings) for COUNT()/SUM()/AVG(), and timestamps as
 // plain 'YYYY-MM-DD HH:MM:SS' text, exactly like the old SQLite version did.
@@ -31,9 +48,10 @@ function getClient() {
     max: 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 20000, // Neon may need a moment to wake up
-    ssl: /sslmode=/i.test(cfg.DATABASE_URL) ? undefined : { rejectUnauthorized: true }
+    ssl: useWebSocket || /sslmode=/i.test(cfg.DATABASE_URL) ? undefined : { rejectUnauthorized: true }
   });
   pool.on('error', (e) => console.error('[EcoBuild] database pool error:', e.message));
+  console.log('[EcoBuild] database driver: ' + (useWebSocket ? 'websocket (port 443)' : 'pg (port 5432)'));
   client = pool;
   return client;
 }

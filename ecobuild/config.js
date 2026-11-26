@@ -26,6 +26,10 @@ module.exports = {
   //   DATABASE_URL=postgresql://USER:PASSWORD@HOST/neondb?sslmode=require
   DATABASE_URL: process.env.DATABASE_URL || '',
 
+  // How to reach Neon: 'pg' (port 5432) or 'websocket' (port 443, for networks that block 5432).
+  // Easiest: add  DB_DRIVER=websocket  to ecobuild/.env
+  DB_DRIVER: process.env.DB_DRIVER || 'pg',
+
   // Password that the ESP32 controllers send in the "x-device-key" header
   DEVICE_KEY: process.env.ECOBUILD_DEVICE_KEY || '123456',
 
